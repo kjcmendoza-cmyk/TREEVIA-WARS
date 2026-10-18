@@ -595,26 +595,38 @@
     }
 
     function addTeam(e) {
-      e.preventDefault();
-      const name = document.getElementById("cfg-team-name").value;
-      const id = `table_${Date.now().toString().slice(-4)}`;
+  e.preventDefault();
+  const nameInput = document.getElementById("cfg-team-name");
+  const name = nameInput.value.trim();
+  if (!name) return;
 
-      const newTeam = {
-        name: name,
-        totalScore: 0,
-        roundScore: 0,
-        sabotagesReceived: 0,
-        powerUps: {
-          doublePointsCards: 1, // 1 per team[cite: 3]
-          sabotageCards: 2,     // 2 per team[cite: 3]
-          shieldCards: 2        // 2 per team[cite: 3]
-        }
-      };
+  const id = `table_${Date.now().toString().slice(-4)}`;
 
-      db.ref(`quizState/teams/${id}`).set(newTeam, () => {
-        document.getElementById("team-form").reset();
-      });
+  const newTeam = {
+    name: name,
+    totalScore: 0,
+    roundScore: 0,
+    sabotagesReceived: 0,
+    powerUps: {
+      doublePointsCards: 1,
+      sabotageCards: 2,
+      shieldCards: 2
     }
+  };
+
+  db.ref(`quizState/teams/${id}`).set(newTeam)
+    .then(() => {
+      nameInput.value = "";
+      if (!gameState.teams) gameState.teams = {};
+      gameState.teams[id] = newTeam;
+      renderTeamsTable();
+      alert(`Team "${name}" added successfully!`);
+    })
+    .catch((error) => {
+      console.error("Error adding team:", error);
+      alert(`Failed to add team: ${error.message}`);
+    });
+}
 
     function removeTeam(id) {
       if (confirm("Delete this team?")) {
