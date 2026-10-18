@@ -79,26 +79,26 @@
     <div id="tab-live" class="space-y-6">
 
       <!-- Stage Navigator Bar -->
-      <div class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Stage Navigator (Main Display Flow)</span>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <button onclick="setStage('WELCOME')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center">
-            1. Welcome Screen
-          </button>
-          <button onclick="setStage('QUESTION')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-purple/20 hover:bg-brand-purple/30 text-brand-purple border border-brand-purple/40 flex items-center justify-center">
-            2. Live Question
-          </button>
-          <button onclick="setStage('ANSWER_REVEAL')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 flex items-center justify-center">
-            3. Reveal Answer
-          </button>
-          <button onclick="setStage('STANDINGS')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-yellow/20 hover:bg-brand-yellow/30 text-brand-yellow border border-brand-yellow/40 flex items-center justify-center">
-            4. Standings & Resolve
-          </button>
-          <button onclick="setStage('PODIUM')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-yellow to-brand-pink text-white flex items-center justify-center">
-            5. Final Podium
-          </button>
-        </div>
-      </div>
+<div class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-2">
+  <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Stage Navigator (Main Display Flow)</span>
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <button id="stage-btn-WELCOME" onclick="setStage('WELCOME')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center transition-all duration-200">
+      1. Welcome Screen
+    </button>
+    <button id="stage-btn-QUESTION" onclick="setStage('QUESTION')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-purple/20 hover:bg-brand-purple/30 text-brand-purple border border-brand-purple/40 flex items-center justify-center transition-all duration-200">
+      2. Live Question
+    </button>
+    <button id="stage-btn-ANSWER_REVEAL" onclick="setStage('ANSWER_REVEAL')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 flex items-center justify-center transition-all duration-200">
+      3. Reveal Answer
+    </button>
+    <button id="stage-btn-STANDINGS" onclick="setStage('STANDINGS')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-yellow/20 hover:bg-brand-yellow/30 text-brand-yellow border border-brand-yellow/40 flex items-center justify-center transition-all duration-200">
+      4. Standings & Resolve
+    </button>
+    <button id="stage-btn-PODIUM" onclick="setStage('PODIUM')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-yellow to-brand-pink text-white flex items-center justify-center transition-all duration-200">
+      5. Final Podium
+    </button>
+  </div>
+</div>
 
       <!-- Grid layout: Timer & Stage Controller | Instant Score Matrix -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -380,6 +380,7 @@ db.ref("quizState").on("value", (snapshot) => {
   if (!gameState.questionBank) gameState.questionBank = [];
 
   renderLiveControls();
+  renderStageButtons(); // <-- Confirm this call is here
   renderQuestionDropdown();
   renderScoreMatrix();
   renderTeamsTable();
@@ -483,6 +484,26 @@ function navigateQuestion(direction) {
   }
 }
 
+function renderStageButtons() {
+  const currentStage = gameState.currentStage || "WELCOME";
+  const stages = ["WELCOME", "QUESTION", "ANSWER_REVEAL", "STANDINGS", "PODIUM"];
+
+  stages.forEach(stage => {
+    const btn = document.getElementById(`stage-btn-${stage}`);
+    if (!btn) return;
+
+    if (stage === currentStage) {
+      // Highlight currently active stage button
+      btn.classList.add("ring-2", "ring-white", "scale-105", "shadow-lg", "shadow-brand-purple/40", "opacity-100");
+      btn.classList.remove("opacity-40");
+    } else {
+      // Dim inactive stage buttons
+      btn.classList.remove("ring-2", "ring-white", "scale-105", "shadow-lg", "shadow-brand-purple/40", "opacity-100");
+      btn.classList.add("opacity-40");
+    }
+  });
+}
+
     // ==========================================
     // 4. LIVE TIMER CONTROL LOGIC
     // ==========================================
@@ -539,20 +560,29 @@ function navigateQuestion(direction) {
     }
 
     function saveQuestionScores() {
-      const teams = gameState.teams || {};
-      const points = gameState.currentPoints || 0;
+  const teams = gameState.teams || {};
+  const points = gameState.currentPoints || 0;
 
-      Object.keys(teams).forEach(id => {
-        const isChecked = document.getElementById(`chk-${id}`)?.checked;
-        roundCheckedScores[id] = isChecked;
+  Object.keys(teams).forEach(id => {
+    const chk = document.getElementById(`chk-${id}`);
+    const isChecked = chk?.checked;
 
-        if (isChecked) {
-          db.ref(`quizState/teams/${id}/roundScore`).transaction(val => (val || 0) + points);
-        }
-      });
-
-      alert("Question scores added to current round base!");
+    if (isChecked) {
+      db.ref(`quizState/teams/${id}/roundScore`).transaction(val => (val || 0) + points);
     }
+  });
+
+  // 1. Reset stored temporary checked state
+  roundCheckedScores = {};
+
+  // 2. Uncheck all boxes in the matrix
+  Object.keys(teams).forEach(id => {
+    const chk = document.getElementById(`chk-${id}`);
+    if (chk) chk.checked = false;
+  });
+
+  alert("Question scores added to current round base!");
+}
 
     // ==========================================
     // 6. POWER-UP RESOLUTION ENGINE
