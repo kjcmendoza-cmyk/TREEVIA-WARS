@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FUSE Quiz Bee - Officer Control Center</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              purple: '#6366f1',
+              pink: '#ec4899',
+              yellow: '#eab308',
+              dark: '#0b0f19',
+              card: '#151c2c',
+              border: '#1e293b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Firebase Compatibility SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    .glass-panel {
+      background: rgba(21, 28, 44, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-brand-dark text-slate-100 min-h-screen font-sans antialiased flex flex-col justify-between">
+
+  <!-- TOP BAR / HEADER -->
+  <header class="w-full border-b border-brand-border bg-slate-900/90 backdrop-blur px-6 py-4 flex flex-wrap justify-between items-center sticky top-0 z-40 gap-4">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-rose-500 to-brand-purple flex items-center justify-center font-bold text-xl shadow-lg">
+        🛠️
+      </div>
+      <div>
+        <h1 class="text-xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-rose-400 via-brand-pink to-brand-yellow">
+          OFFICER CONTROL CENTER
+        </h1>
+        <p class="text-xs text-slate-400 font-medium">Ateneo FUSE Master Admin Console</p>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs & Sync Status -->
+    <div class="flex items-center space-x-3">
+      <span id="connection-status" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-pulse"></span> Connected
+      </span>
+      <button onclick="switchTab('live')" id="tab-btn-live" class="px-4 py-2 rounded-xl text-xs font-bold bg-brand-purple text-white shadow-md transition">
+        ⚡ Live Control
+      </button>
+      <button onclick="switchTab('setup')" id="tab-btn-setup" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+        ⚙️ Event Setup
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-grow container mx-auto px-4 py-6 max-w-7xl">
+
+    <!-- TAB 1: LIVE GAME CONTROL ROOM -->
+    <div id="tab-live" class="space-y-6">
+
+      <!-- Stage Navigator Bar -->
+      <div class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Stage Navigator (Main Display Flow)</span>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <button onclick="setStage('WELCOME')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center">
+            1. Welcome Screen
+          </button>
+          <button onclick="setStage('QUESTION')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-purple/20 hover:bg-brand-purple/30 text-brand-purple border border-brand-purple/40 flex items-center justify-center">
+            2. Live Question
+          </button>
+          <button onclick="setStage('ANSWER_REVEAL')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 flex items-center justify-center">
+            3. Reveal Answer
+          </button>
+          <button onclick="setStage('STANDINGS')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-yellow/20 hover:bg-brand-yellow/30 text-brand-yellow border border-brand-yellow/40 flex items-center justify-center">
+            4. Standings & Resolve
+          </button>
+          <button onclick="setStage('PODIUM')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-yellow to-brand-pink text-white flex items-center justify-center">
+            5. Final Podium
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid layout: Timer & Stage Controller | Instant Score Matrix -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Column 1: Active Question & Timer Control -->
+        <div class="space-y-6 lg:col-span-1">
+          <!-- Active Question Controller -->
+          <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+            <h3 class="font-bold text-sm uppercase tracking-wider text-brand-purple flex items-center">
+              <i data-lucide="help-circle" class="w-4 h-4 mr-2"></i> Question Controller
+            </h3>
+
+            <div class="space-y-2">
+              <label class="text-xs text-slate-400 font-semibold">Select Active Question</label>
+              <select id="active-question-select" onchange="loadQuestionToStage()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
+                <!-- Dynamically populated options -->
+              </select>
+            </div>
+
+            <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-1 text-xs">
+              <p><span class="text-slate-400">Category:</span> <strong id="admin-q-category" class="text-white">-</strong></p>
+              <p><span class="text-slate-400">Points Value:</span> <strong id="admin-q-points" class="text-brand-yellow">-</strong></p>
+              <p><span class="text-slate-400">Answer:</span> <strong id="admin-q-answer" class="text-emerald-400">-</strong></p>
+            </div>
+          </div>
+
+          <!-- Live Timer Console -->
+          <div class="glass-panel p-5 rounded-2xl border border-slate-800 text-center space-y-4">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Live Timer Console</span>
+            <div id="admin-timer-display" class="text-6xl font-black font-mono text-brand-pink">
+              00
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="startTimer()" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md">
+                ▶ START TIMER
+              </button>
+              <button onclick="stopTimer()" class="py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold text-xs shadow-md">
+                ⏸ STOP / PAUSE
+              </button>
+            </div>
+            <button onclick="resetTimer()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs border border-slate-700">
+              🔄 Reset Default Duration
+            </button>
+          </div>
+        </div>
+
+        <!-- Column 2: Instant Score Matrix & Round Evaluator -->
+        <div class="space-y-6 lg:col-span-2">
+          
+          <!-- Instant Score Checkboxes Matrix -->
+          <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-bold text-sm uppercase tracking-wider text-brand-yellow flex items-center">
+                  <i data-lucide="check-square" class="w-4 h-4 mr-2"></i> Instant Score Matrix
+                </h3>
+                <p class="text-xs text-slate-400">Tick boxes for teams that gave correct answers for this question.</p>
+              </div>
+              <button onclick="saveQuestionScores()" class="px-3 py-1.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs rounded-lg transition">
+                💾 Lock Question Scores
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase">
+                    <th class="py-2 px-3">Correct?</th>
+                    <th class="py-2 px-3">Table Name</th>
+                    <th class="py-2 px-3 text-right">Base Pts This Round</th>
+                    <th class="py-2 px-3 text-right">Sabotages Recv</th>
+                  </tr>
+                </thead>
+                <tbody id="score-matrix-body" class="divide-y divide-slate-800/60 text-sm">
+                  <!-- Dynamic Rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Round Evaluator Engine (Power-Up Resolver) -->
+          <div class="glass-panel p-5 rounded-2xl border border-brand-purple/40 bg-slate-900/40 space-y-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="font-bold text-sm uppercase tracking-wider text-brand-pink flex items-center">
+                  <i data-lucide="cpu" class="w-4 h-4 mr-2"></i> Round Evaluator Engine
+                </h3>
+                <p class="text-xs text-slate-400">Executes multipliers, resolves sabotages vs shields, and updates leaderboard.</p>
+              </div>
+              <button onclick="evaluateAndEndRound()" class="px-5 py-2.5 bg-gradient-to-r from-brand-pink to-brand-purple hover:opacity-90 text-white font-black text-xs rounded-xl shadow-lg transition">
+                🚀 RESOLVE & END ROUND
+              </button>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-400 space-y-1">
+              <p>Formula: Final Round Score = (Base Correct Points × Double Multiplier) - Net Sabotage Deduction</p>
+              <p>Anti-Dogpiling Cap: Max 3 total sabotage hits game-wide per team[cite: 3].</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 2: SETUP & EVENT CONFIGURATION DASHBOARD -->
+    <div id="tab-setup" class="hidden space-y-6">
+
+      <!-- Header Notice -->
+      <div class="p-4 rounded-2xl glass-panel border border-slate-800 flex justify-between items-center">
+        <div>
+          <h2 class="font-bold text-base text-white">Dynamic Event Configuration</h2>
+          <p class="text-xs text-slate-400">Parameters are fully editable on the fly without touching code[cite: 2].</p>
+        </div>
+        <button onclick="seedDefaultData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold">
+          ⚡ Reset to Demo Data
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- 1. Question Bank Setup -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+          <h3 class="font-bold text-sm uppercase tracking-wider text-brand-purple">Add / Edit Question</h3>
+          
+          <form id="question-form" onsubmit="saveQuestion(event)" class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Round Number</label>
+                <input type="number" id="cfg-q-round" min="1" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Question Number</label>
+                <input type="number" id="cfg-q-num" min="1" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Category Title</label>
+              <input type="text" id="cfg-q-cat" placeholder="e.g., Circuit Theory" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Question Text</label>
+              <textarea id="cfg-q-text" rows="3" required placeholder="Enter prompt text here..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Correct Answer Text</label>
+              <input type="text" id="cfg-q-ans" placeholder="e.g., 220 Volts" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Point Value</label>
+                <input type="number" id="cfg-q-pts" min="1" value="10" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Timer (Seconds)</label>
+                <input type="number" id="cfg-q-timer" min="5" value="45" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Diagram / Image URL (Optional)</label>
+              <input type="url" id="cfg-q-img" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+            </div>
+
+            <button type="submit" class="w-full py-2.5 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs transition">
+              ➕ Save Question to Database
+            </button>
+          </form>
+        </div>
+
+        <!-- 2. Team Roster Setup -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
+          <h3 class="font-bold text-sm uppercase tracking-wider text-brand-yellow">Team Roster Setup</h3>
+          
+          <form id="team-form" onsubmit="addTeam(event)" class="flex space-x-2">
+            <input type="text" id="cfg-team-name" placeholder="Enter Team Name (e.g., Table 1 - Transformers)" required class="flex-grow bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+            <button type="submit" class="px-4 py-2.5 bg-brand-yellow/20 hover:bg-brand-yellow/30 text-brand-yellow border border-brand-yellow/40 rounded-xl font-bold text-xs transition">
+              Add Team
+            </button>
+          </form>
+
+          <div class="overflow-y-auto max-h-80">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase">
+                  <th class="py-2 px-3">Table ID</th>
+                  <th class="py-2 px-3">Team Name</th>
+                  <th class="py-2 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="teams-table-body" class="divide-y divide-slate-800/60 text-xs">
+                <!-- Dynamic Teams List -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="w-full border-t border-brand-border bg-slate-950 py-3 text-center text-slate-500 text-xs">
+    Ateneo FUSE Quiz Bee Engine • Officer Control Center Console
+  </footer>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // ==========================================
+    // 1. FIREBASE INITIALIZATION
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJ5WzRS8nmn7Xtm7ixFwCJOUxH6nodeZc",
+      authDomain: "treevia-wars.firebaseapp.com",
+      databaseURL: "https://treevia-wars-default-rtdb.firebaseio.com",
+      projectId: "treevia-wars",
+      storageBucket: "treevia-wars.firebasestorage.app",
+      messagingSenderId: "456909123826",
+      appId: "1:456909123826:web:224e0726db9dcd80bfa06b",
+      measurementId: "G-4ERP4N2VH3"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Global State
+    let gameState = {};
+    let activeTimerInterval = null;
+    let roundCheckedScores = {}; // Temporary store for active round question ticks
+
+    // ==========================================
+    // 2. REALTIME DATABASE LISTENERS
+    // ==========================================
+    db.ref("quizState").on("value", (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      gameState = data;
+      
+      renderLiveControls();
+      renderQuestionDropdown();
+      renderScoreMatrix();
+      renderTeamsTable();
+    });
+
+    // Navigation Tab Switcher
+    function switchTab(tab) {
+      if (tab === 'live') {
+        document.getElementById('tab-live').classList.remove('hidden');
+        document.getElementById('tab-setup').classList.add('hidden');
+        document.getElementById('tab-btn-live').className = "px-4 py-2 rounded-xl text-xs font-bold bg-brand-purple text-white shadow-md transition";
+        document.getElementById('tab-btn-setup').className = "px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition";
+      } else {
+        document.getElementById('tab-live').classList.add('hidden');
+        document.getElementById('tab-setup').classList.remove('hidden');
+        document.getElementById('tab-btn-setup').className = "px-4 py-2 rounded-xl text-xs font-bold bg-brand-purple text-white shadow-md transition";
+        document.getElementById('tab-btn-live').className = "px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition";
+      }
+    }
+
+    // ==========================================
+    // 3. STAGE & QUESTION CONTROLS
+    // ==========================================
+    function setStage(stageName) {
+      db.ref("quizState/currentStage").set(stageName);
+    }
+
+    function renderQuestionDropdown() {
+      const select = document.getElementById("active-question-select");
+      const questions = gameState.questionBank || [];
+      
+      select.innerHTML = `<option value="">-- Choose Question --</option>`;
+      questions.forEach((q, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        opt.innerText = `R${q.round} Q${q.number}: ${q.category} (${q.points} pts)`;
+        if (gameState.activeQuestionIndex === idx) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      // Update question display details
+      if (gameState.activeQuestionIndex !== undefined && questions[gameState.activeQuestionIndex]) {
+        const q = questions[gameState.activeQuestionIndex];
+        document.getElementById("admin-q-category").innerText = q.category;
+        document.getElementById("admin-q-points").innerText = `${q.points} Pts`;
+        document.getElementById("admin-q-answer").innerText = q.answer;
+      }
+    }
+
+    function loadQuestionToStage() {
+      const idx = parseInt(document.getElementById("active-question-select").value);
+      if (isNaN(idx)) return;
+
+      const q = gameState.questionBank[idx];
+      db.ref("quizState").update({
+        activeQuestionIndex: idx,
+        currentRound: q.round,
+        questionNumber: q.number,
+        currentCategory: q.category,
+        currentPoints: q.points,
+        currentQuestionText: q.text,
+        currentAnswerText: q.answer,
+        currentImageUrl: q.imageUrl || "",
+        timerRemaining: q.timerDuration || 30,
+        defaultTimerDuration: q.timerDuration || 30
+      });
+    }
+
+    // ==========================================
+    // 4. LIVE TIMER CONTROL LOGIC
+    // ==========================================
+    function renderLiveControls() {
+      document.getElementById("admin-timer-display").innerText = String(gameState.timerRemaining || 0).padStart(2, '0');
+    }
+
+    function startTimer() {
+      if (activeTimerInterval) clearInterval(activeTimerInterval);
+      
+      activeTimerInterval = setInterval(() => {
+        const current = gameState.timerRemaining || 0;
+        if (current <= 1) {
+          clearInterval(activeTimerInterval);
+          db.ref("quizState/timerRemaining").set(0);
+        } else {
+          db.ref("quizState/timerRemaining").set(current - 1);
+        }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (activeTimerInterval) clearInterval(activeTimerInterval);
+    }
+
+    function resetTimer() {
+      stopTimer();
+      const defaultDuration = gameState.defaultTimerDuration || 30;
+      db.ref("quizState/timerRemaining").set(defaultDuration);
+    }
+
+    // ==========================================
+    // 5. INSTANT SCORE MATRIX LOGIC
+    // ==========================================
+    function renderScoreMatrix() {
+      const tbody = document.getElementById("score-matrix-body");
+      tbody.innerHTML = "";
+
+      const teams = gameState.teams || {};
+      Object.keys(teams).forEach(id => {
+        const team = teams[id];
+        const row = document.createElement("tr");
+        
+        row.innerHTML = `
+          <td class="py-2.5 px-3">
+            <input type="checkbox" id="chk-${id}" ${roundCheckedScores[id] ? 'checked' : ''} class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-purple focus:ring-brand-purple" />
+          </td>
+          <td class="py-2.5 px-3 font-semibold text-white">${team.name}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-slate-300">${team.roundScore || 0} Pts</td>
+          <td class="py-2.5 px-3 text-right font-mono text-rose-400 font-bold">${team.sabotagesReceived || 0}/3</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function saveQuestionScores() {
+      const teams = gameState.teams || {};
+      const points = gameState.currentPoints || 0;
+
+      Object.keys(teams).forEach(id => {
+        const isChecked = document.getElementById(`chk-${id}`)?.checked;
+        roundCheckedScores[id] = isChecked;
+
+        if (isChecked) {
+          db.ref(`quizState/teams/${id}/roundScore`).transaction(val => (val || 0) + points);
+        }
+      });
+
+      alert("Question scores added to current round base!");
+    }
+
+    // ==========================================
+    // 6. POWER-UP RESOLUTION ENGINE
+    // ==========================================
+    function evaluateAndEndRound() {
+      const round = gameState.currentRound || 1;
+      const teams = gameState.teams || {};
+      const pending = gameState.pendingPowerUps?.[`round_${round}`] || {};
+      
+      const logs = [];
+      const updates = {};
+
+      // Step 1: Track sabotage attacks directed at each team
+      const incomingAttacks = {};
+      Object.keys(teams).forEach(tId => incomingAttacks[tId] = 0);
+
+      Object.keys(pending).forEach(attackerId => {
+        const targetId = pending[attackerId]?.sabotageTarget;
+        if (targetId && incomingAttacks[targetId] !== undefined) {
+          incomingAttacks[targetId] += 1;
+        }
+      });
+
+      // Step 2: Resolve each team's score using formula
+      Object.keys(teams).forEach(teamId => {
+        const team = teams[teamId];
+        const teamPending = pending[teamId] || {};
+        
+        const baseRoundScore = team.roundScore || 0;
+        const doubleActive = teamPending.doublePoints || false;
+        const shieldActive = teamPending.shieldActive || false;
+        const attacksReceived = incomingAttacks[teamId] || 0;
+
+        // 2x Multiplier[cite: 3]
+        const multiplier = doubleActive ? 2 : 1;
+        let scoreFromQuestions = baseRoundScore * multiplier;
+
+        if (doubleActive) {
+          logs.push(`⚡ ${team.name} used Step-Up Transformer (2x Double Points)![cite: 3]`);
+        }
+
+        // Net Sabotage Resolution[cite: 3]
+        let netSabotageLoss = 0;
+        let actualHitsRecorded = 0;
+
+        if (attacksReceived > 0) {
+          if (shieldActive) {
+            logs.push(`🛡️ ${team.name} deployed Surge Protector (Shield) and BLOCKED ${attacksReceived} incoming Voltage Drop attack(s)![cite: 3]`);
+          } else {
+            // Check Anti-Dogpiling Cap (Max 3 total across entire game)[cite: 3]
+            const currentCap = team.sabotagesReceived || 0;
+            const remainingCapRoom = Math.max(0, 3 - currentCap);
+            
+            actualHitsRecorded = Math.min(attacksReceived, remainingCapRoom);
+            netSabotageLoss = actualHitsRecorded * 1; // 1 pt deduction per hit[cite: 3]
+
+            logs.push(`💥 ${team.name} was hit by ${actualHitsRecorded} Voltage Drop attack(s) (-${netSabotageLoss} Pts)[cite: 3].`);
+          }
+        } else if (shieldActive) {
+          logs.push(`🛡️ ${team.name} deployed Surge Protector (Shield), but received no attacks (Shield wasted)[cite: 3].`);
+        }
+
+        // Calculate Final Round Score
+        const finalRoundScore = Math.max(0, scoreFromQuestions - netSabotageLoss);
+        const newTotalScore = (team.totalScore || 0) + finalRoundScore;
+        const newSabotagesReceived = (team.sabotagesReceived || 0) + actualHitsRecorded;
+
+        // Stage DB updates
+        updates[`quizState/teams/${teamId}/totalScore`] = newTotalScore;
+        updates[`quizState/teams/${teamId}/roundScore`] = 0; // Reset for next round
+        updates[`quizState/teams/${teamId}/sabotagesReceived`] = newSabotagesReceived;
+      });
+
+      // Reset checked state & push logs
+      roundCheckedScores = {};
+      updates[`quizState/latestRoundLogs`] = logs;
+      updates[`quizState/currentStage`] = "STANDINGS";
+
+      db.ref().update(updates, (err) => {
+        if (!err) {
+          alert(`Round ${round} evaluated successfully! Stage switched to Standings.`);
+        }
+      });
+    }
+
+    // ==========================================
+    // 7. SETUP & CONFIGURATION ENGINE
+    // ==========================================
+    function saveQuestion(e) {
+      e.preventDefault();
+      const newQ = {
+        round: parseInt(document.getElementById("cfg-q-round").value),
+        number: parseInt(document.getElementById("cfg-q-num").value),
+        category: document.getElementById("cfg-q-cat").value,
+        text: document.getElementById("cfg-q-text").value,
+        answer: document.getElementById("cfg-q-ans").value,
+        points: parseInt(document.getElementById("cfg-q-pts").value),
+        timerDuration: parseInt(document.getElementById("cfg-q-timer").value),
+        imageUrl: document.getElementById("cfg-q-img").value
+      };
+
+      const bank = gameState.questionBank || [];
+      bank.push(newQ);
+      
+      db.ref("quizState/questionBank").set(bank, () => {
+        alert("Question added successfully!");
+        document.getElementById("question-form").reset();
+      });
+    }
+
+    function addTeam(e) {
+      e.preventDefault();
+      const name = document.getElementById("cfg-team-name").value;
+      const id = `table_${Date.now().toString().slice(-4)}`;
+
+      const newTeam = {
+        name: name,
+        totalScore: 0,
+        roundScore: 0,
+        sabotagesReceived: 0,
+        powerUps: {
+          doublePointsCards: 1, // 1 per team[cite: 3]
+          sabotageCards: 2,     // 2 per team[cite: 3]
+          shieldCards: 2        // 2 per team[cite: 3]
+        }
+      };
+
+      db.ref(`quizState/teams/${id}`).set(newTeam, () => {
+        document.getElementById("team-form").reset();
+      });
+    }
+
+    function removeTeam(id) {
+      if (confirm("Delete this team?")) {
+        db.ref(`quizState/teams/${id}`).remove();
+      }
+    }
+
+    function renderTeamsTable() {
+      const tbody = document.getElementById("teams-table-body");
+      tbody.innerHTML = "";
+
+      const teams = gameState.teams || {};
+      Object.keys(teams).forEach(id => {
+        const t = teams[id];
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="py-2 px-3 font-mono text-slate-400">${id}</td>
+          <td class="py-2 px-3 font-bold text-white">${t.name}</td>
+          <td class="py-2 px-3 text-right">
+            <button onclick="removeTeam('${id}')" class="text-rose-400 hover:text-rose-300 font-bold">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Seed Demo Data
+    function seedDefaultData() {
+      if (!confirm("This will overwrite current contest state with fresh demo data. Continue?")) return;
+
+      const defaultSeed = {
+        currentStage: "WELCOME",
+        welcomeMessage: "Waiting for Quizmaster to initialize Stage 1...",
+        activeQuestionIndex: 0,
+        currentRound: 1,
+        questionNumber: 1,
+        currentCategory: "Circuit Theory & EE Basics",
+        currentPoints: 10,
+        currentQuestionText: "What electrical theorem states that any linear bilateral network can be replaced by an equivalent circuit consisting of an ideal voltage source in series with an equivalent resistor?",
+        currentAnswerText: "Thévenin's Theorem",
+        timerRemaining: 30,
+        defaultTimerDuration: 30,
+        latestRoundLogs: ["System initialized. Awaiting Round 1 completion."],
+        teams: {
+          table_1: {
+            name: "Table 1 - Circuit Breakers",
+            totalScore: 0,
+            roundScore: 0,
+            sabotagesReceived: 0,
+            powerUps: { doublePointsCards: 1, sabotageCards: 2, shieldCards: 2 }
+          },
+          table_2: {
+            name: "Table 2 - Flux Capacitors",
+            totalScore: 0,
+            roundScore: 0,
+            sabotagesReceived: 0,
+            powerUps: { doublePointsCards: 1, sabotageCards: 2, shieldCards: 2 }
+          },
+          table_3: {
+            name: "Table 3 - Ohm's Law Enforcers",
+            totalScore: 0,
+            roundScore: 0,
+            sabotagesReceived: 0,
+            powerUps: { doublePointsCards: 1, sabotageCards: 2, shieldCards: 2 }
+          }
+        },
+        questionBank: [
+          {
+            round: 1,
+            number: 1,
+            category: "Circuit Theory & EE Basics",
+            text: "What electrical theorem states that any linear bilateral network can be replaced by an equivalent circuit consisting of an ideal voltage source in series with an equivalent resistor?",
+            answer: "Thévenin's Theorem",
+            points: 10,
+            timerDuration: 30
+          },
+          {
+            round: 1,
+            number: 2,
+            category: "Electromagnetics",
+            text: "Calculate the total equivalent capacitance of two 10µF capacitors connected in series.",
+            answer: "5 µF",
+            points: 15,
+            timerDuration: 45
+          }
+        ]
+      };
+
+      db.ref("quizState").set(defaultSeed, () => {
+        alert("Demo data successfully seeded into Firebase Database!");
+      });
+    }
+
+    // Initialize Lucide Icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>

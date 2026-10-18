@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FUSE Quiz Bee - Main & Facilitator Interface</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              purple: '#6366f1',
+              pink: '#ec4899',
+              yellow: '#eab308',
+              dark: '#0b0f19',
+              card: '#151c2c',
+              border: '#1e293b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Firebase Compatibility SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 15px rgba(236, 72, 153, 0.4); }
+      50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.8); }
+    }
+    .glow-effect { animation: pulse-glow 3s infinite; }
+    .glass-panel {
+      background: rgba(21, 28, 44, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-brand-dark text-slate-100 min-h-screen font-sans antialiased flex flex-col justify-between">
+
+  <!-- TOP BAR / HEADER -->
+  <header class="w-full border-b border-brand-border bg-slate-900/80 backdrop-blur px-6 py-4 flex justify-between items-center sticky top-0 z-40">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-brand-purple to-brand-pink flex items-center justify-center font-bold text-xl shadow-lg">
+        ⚡
+      </div>
+      <div>
+        <h1 class="text-xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-brand-purple via-brand-pink to-brand-yellow">
+          ATENEO FUSE
+        </h1>
+        <p class="text-xs text-slate-400 font-medium">Electrical Engineering Quiz Bee</p>
+      </div>
+    </div>
+
+    <!-- Mode & Status Controls -->
+    <div class="flex items-center space-x-3">
+      <span id="connection-status" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-pulse"></span> Live Synced
+      </span>
+      <button onclick="toggleMechanicsModal(true)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+        📖 Mechanics
+      </button>
+      <button id="faci-mode-btn" onclick="openFaciLoginModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-brand-purple to-brand-pink hover:opacity-90 text-white transition shadow-md">
+        🔒 Faci Mode
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER FOR PROJECTOR MODES -->
+  <main id="projector-container" class="flex-grow container mx-auto px-4 py-6 flex flex-col justify-center items-center">
+
+    <!-- 1. WELCOME SCREEN -->
+    <section id="view-welcome" class="text-center max-w-3xl space-y-8 my-auto">
+      <div class="space-y-4">
+        <span class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-brand-purple/20 text-brand-purple border border-brand-purple/30">
+          Annual Engineering Clash
+        </span>
+        <h2 class="text-5xl md:text-6xl font-black tracking-tight text-white">
+          ELECTRICAL ENGINEERING <br />
+          <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-yellow via-brand-pink to-brand-purple">
+            QUIZ BEE SHOWDOWN
+          </span>
+        </h2>
+        <p class="text-slate-400 text-lg max-w-xl mx-auto">
+          Welcome participants and spectators! The event will begin shortly. Facilitators, please connect your table devices using Facilitator Mode.
+        </p>
+      </div>
+
+      <div class="p-6 rounded-2xl glass-panel max-w-md mx-auto border border-slate-700/50 shadow-2xl">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">Event Status</h3>
+        <p id="welcome-status-text" class="text-lg font-semibold text-brand-yellow animate-pulse">
+          Waiting for Quizmaster to initialize Stage 1...
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. LIVE QUESTION VIEW -->
+    <section id="view-question" class="hidden w-full max-w-5xl space-y-6">
+      <!-- Category & Points Header -->
+      <div class="flex justify-between items-center glass-panel p-4 rounded-xl border border-slate-800">
+        <div>
+          <span id="q-category" class="text-xs font-bold uppercase tracking-widest text-brand-purple">Category</span>
+          <h3 id="q-title" class="text-xl font-bold text-white">Question #1</h3>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-slate-400 block">Value</span>
+          <span id="q-points" class="text-xl font-extrabold text-brand-yellow">10 Pts</span>
+        </div>
+      </div>
+
+      <!-- Main Display Box & Timer -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Question Text & Media -->
+        <div class="lg:col-span-2 glass-panel p-8 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-6">
+          <div class="space-y-4">
+            <p id="q-text" class="text-2xl font-medium leading-relaxed text-slate-100">
+              Question text will load dynamically here...
+            </p>
+            <div id="q-media-container" class="hidden rounded-xl overflow-hidden border border-slate-700 bg-slate-900/50 p-2">
+              <img id="q-image" src="" alt="Question Diagram" class="max-h-64 mx-auto object-contain rounded-lg" />
+            </div>
+          </div>
+          <div id="answer-reveal-box" class="hidden p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
+            <span class="text-xs font-bold uppercase tracking-wider block text-emerald-400">Correct Answer</span>
+            <p id="q-answer" class="text-xl font-bold mt-1">Answer goes here</p>
+          </div>
+        </div>
+
+        <!-- Timer Panel -->
+        <div class="glass-panel p-8 rounded-2xl border border-slate-800 flex flex-col justify-center items-center text-center glow-effect">
+          <span class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Time Remaining</span>
+          <div id="timer-display" class="text-7xl font-black tracking-tighter text-brand-pink font-mono">
+            00
+          </div>
+          <span class="text-xs text-slate-500 mt-2">Seconds</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. ROUND STANDINGS & RESOLUTION SUMMARY VIEW -->
+    <section id="view-standings" class="hidden w-full max-w-5xl space-y-6">
+      <div class="text-center space-y-2">
+        <h2 class="text-3xl font-black text-white">ROUND STANDINGS & RESOLUTION</h2>
+        <p id="round-title-display" class="text-slate-400 text-sm">Round Results Overview</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Power-Up Actions Log -->
+        <div class="glass-panel p-5 rounded-xl border border-slate-800 md:col-span-1 space-y-3">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-brand-purple flex items-center">
+            <i data-lucide="zap" class="w-4 h-4 mr-2"></i> Power-Up Resolver
+          </h3>
+          <div id="powerup-log-container" class="space-y-2 max-h-80 overflow-y-auto text-xs">
+            <!-- Logs injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Cumulative Leaderboard Table -->
+        <div class="glass-panel p-5 rounded-xl border border-slate-800 md:col-span-2">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-brand-yellow mb-4 flex items-center">
+            <i data-lucide="trophy" class="w-4 h-4 mr-2"></i> Cumulative Leaderboard
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase">
+                  <th class="py-2 px-3">Rank</th>
+                  <th class="py-2 px-3">Table / Team</th>
+                  <th class="py-2 px-3 text-right">Round Pts</th>
+                  <th class="py-2 px-3 text-right">Total Score</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-table-body" class="divide-y divide-slate-800/60 text-sm">
+                <!-- Dynamic rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. FINAL PODIUM VIEW -->
+    <section id="view-podium" class="hidden w-full max-w-4xl text-center space-y-8">
+      <div>
+        <span class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-brand-yellow/20 text-brand-yellow border border-brand-yellow/30">
+          Grand Finale
+        </span>
+        <h2 class="text-4xl md:text-5xl font-black text-white mt-3">CHAMPIONSHIP PODIUM</h2>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4 items-end pt-12 max-w-3xl mx-auto">
+        <!-- 2nd Place -->
+        <div class="glass-panel p-6 rounded-t-2xl border border-slate-700 flex flex-col items-center h-64 justify-between order-1">
+          <span class="text-3xl">🥈</span>
+          <div>
+            <h4 id="podium-2nd-name" class="font-bold text-slate-200">Table 2</h4>
+            <p id="podium-2nd-score" class="text-xl font-extrabold text-brand-purple">0 Pts</p>
+          </div>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">2nd Place</span>
+        </div>
+
+        <!-- 1st Place -->
+        <div class="glass-panel p-6 rounded-t-2xl border border-brand-yellow/50 bg-gradient-to-b from-brand-yellow/10 to-transparent flex flex-col items-center h-80 justify-between order-2 glow-effect">
+          <span class="text-5xl">🏆</span>
+          <div>
+            <h4 id="podium-1st-name" class="font-black text-xl text-brand-yellow">Table 1</h4>
+            <p id="podium-1st-score" class="text-3xl font-black text-white">0 Pts</p>
+          </div>
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-yellow">Grand Champion</span>
+        </div>
+
+        <!-- 3rd Place -->
+        <div class="glass-panel p-6 rounded-t-2xl border border-slate-700 flex flex-col items-center h-52 justify-between order-3">
+          <span class="text-3xl">🥉</span>
+          <div>
+            <h4 id="podium-3rd-name" class="font-bold text-slate-200">Table 3</h4>
+            <p id="podium-3rd-score" class="text-xl font-extrabold text-brand-pink">0 Pts</p>
+          </div>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">3rd Place</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FACILITATOR MODE VIEW OVERLAY -->
+  <div id="facilitator-container" class="hidden fixed inset-0 z-50 bg-brand-dark flex flex-col">
+    <!-- Faci Top Navigation -->
+    <div class="p-4 border-b border-brand-border bg-slate-900 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <span class="text-lg">⚡</span>
+        <div>
+          <h2 class="font-bold text-sm text-white">Facilitator Control Deck</h2>
+          <p id="faci-assigned-table" class="text-xs text-brand-purple font-semibold">No Table Selected</p>
+        </div>
+      </div>
+      <button onclick="exitFaciMode()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+        Exit Faci Mode
+      </button>
+    </div>
+
+    <!-- Faci Core Content -->
+    <div class="p-4 flex-grow overflow-y-auto max-w-md mx-auto w-full space-y-6">
+
+      <!-- Table Selection Screen -->
+      <div id="faci-step-select-table" class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-4">
+        <h3 class="font-bold text-lg text-white">Select Assigned Table</h3>
+        <p class="text-xs text-slate-400">Choose the team table you are assigned to facilitate.</p>
+
+        <select id="faci-table-dropdown" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-brand-purple">
+          <option value="">-- Choose Table --</option>
+        </select>
+
+        <button onclick="confirmTableSelection()" class="w-full py-3 bg-brand-purple hover:bg-brand-purple/90 rounded-xl font-bold text-sm text-white transition">
+          Confirm & Access Controls
+        </button>
+      </div>
+
+      <!-- Power-Up Deck Controls Screen -->
+      <div id="faci-step-deck" class="hidden space-y-4">
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+          <div>
+            <span class="text-xs text-slate-400 block">Active Status</span>
+            <span id="faci-current-round-text" class="text-xs font-bold text-brand-yellow">Round 1 In Progress</span>
+          </div>
+          <span id="faci-sabotage-count-badge" class="px-2 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs rounded-md">
+            Sabotages Received: 0/3
+          </span>
+        </div>
+
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mt-2">Power-Up Inventory</h3>
+
+        <!-- Card 1: Double Points (Step-Up Transformer) -->
+        <div class="glass-panel p-5 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-bold text-white text-sm">Step-Up Transformer</h4>
+              <p class="text-xs text-brand-yellow font-semibold">Double Points (2x Multiplier)</p>
+            </div>
+            <span id="status-double-card" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              1 Available
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">Doubles all base points earned in the chosen round. Must activate before round starts.</p>
+          <button id="btn-activate-double" onclick="activateDoublePoints()" class="w-full py-2 bg-brand-yellow/20 hover:bg-brand-yellow/30 text-brand-yellow border border-brand-yellow/40 rounded-lg text-xs font-bold transition">
+            Activate for Active Round
+          </button>
+        </div>
+
+        <!-- Card 2: Sabotage (Voltage Drop) -->
+        <div class="glass-panel p-5 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-bold text-white text-sm">Voltage Drop</h4>
+              <p class="text-xs text-rose-400 font-semibold">Sabotage Rival (-1 Point)</p>
+            </div>
+            <span id="status-sabotage-card" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+              2 Available
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">Deducts 1 point from target team for this round. Max 1 cast per round.</p>
+
+          <div class="space-y-2">
+            <select id="sabotage-target-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200">
+              <option value="">-- Select Target Team --</option>
+            </select>
+            <button id="btn-activate-sabotage" onclick="castSabotage()" class="w-full py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-lg text-xs font-bold transition">
+              Cast Sabotage Target
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 3: Shield (Surge Protector) -->
+        <div class="glass-panel p-5 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-bold text-white text-sm">Surge Protector</h4>
+              <p class="text-xs text-indigo-400 font-semibold">Shield / Complete Immunity</p>
+            </div>
+            <span id="status-shield-card" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+              2 Available
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">Grants immunity against all incoming sabotage attacks in this round.</p>
+          <button id="btn-activate-shield" onclick="activateShield()" class="w-full py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-bold transition">
+            Deploy Shield for Active Round
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: FACILITATOR LOGIN PASSCODE -->
+  <div id="faci-login-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-center items-center p-4">
+    <div class="glass-panel p-6 rounded-2xl border border-slate-800 max-w-xs w-full space-y-4">
+      <div class="text-center">
+        <h3 class="font-bold text-lg text-white">Officer Passcode</h3>
+        <p class="text-xs text-slate-400">Enter 4-digit officer code to enter Facilitator Mode.</p>
+      </div>
+      <input type="password" id="faci-pin-input" maxlength="4" placeholder="••••" class="w-full text-center text-2xl tracking-widest bg-slate-900 border border-slate-700 rounded-xl py-3 text-white focus:outline-none focus:border-brand-purple font-mono" />
+      <div class="flex space-x-2">
+        <button onclick="closeFaciLoginModal()" class="w-1/2 py-2.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-700">
+          Cancel
+        </button>
+        <button onclick="verifyFaciPasscode()" class="w-1/2 py-2.5 bg-brand-purple text-white rounded-xl text-xs font-bold hover:bg-brand-purple/90">
+          Unlock
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MECHANICS MODAL -->
+  <div id="mechanics-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-center items-center p-4">
+    <div class="glass-panel p-6 rounded-2xl border border-slate-800 max-w-xl w-full max-h-[85vh] overflow-y-auto space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-lg text-white">Contest Mechanics & Rules</h3>
+        <button onclick="toggleMechanicsModal(false)" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+        <h4 class="font-bold text-brand-yellow uppercase text-xs">1. Scoring & Timing</h4>
+        <p>Each round consists of questions with designated point values and custom countdown timers. Teams submit answers through their physical table response boards.</p>
+
+        <h4 class="font-bold text-brand-purple uppercase text-xs">2. Power-Up Mechanics</h4>
+        <ul class="list-disc list-inside space-y-1 text-slate-400">
+          <li><strong class="text-slate-200">Step-Up Transformer (Double Points):</strong> 1 card per team. Multiplies correct points earned by 2x for that chosen round.</li>
+          <li><strong class="text-slate-200">Voltage Drop (Sabotage):</strong> 2 cards per team. Deducts 1 point from a targeted team. Anti-Dogpiling Cap: Max 3 total sabotage attacks received across entire game per team.</li>
+          <li><strong class="text-slate-200">Surge Protector (Shield):</strong> 2 cards per team. Grants complete immunity from sabotage attacks during that round. If no one attacks, the shield is consumed.</li>
+        </ul>
+      </div>
+      <button onclick="toggleMechanicsModal(false)" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold">
+        Close Mechanics
+      </button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="w-full border-t border-brand-border bg-slate-950 py-3 text-center text-slate-500 text-xs">
+    Ateneo Electrical Engineering Quiz Bee Engine • Built with Firebase Realtime DB
+  </footer>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // ==========================================
+    // 1. FIREBASE INITIALIZATION
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJ5WzRS8nmn7Xtm7ixFwCJOUxH6nodeZc",
+      authDomain: "treevia-wars.firebaseapp.com",
+      databaseURL: "https://treevia-wars-default-rtdb.firebaseio.com",
+      projectId: "treevia-wars",
+      storageBucket: "treevia-wars.firebasestorage.app",
+      messagingSenderId: "456909123826",
+      appId: "1:456909123826:web:224e0726db9dcd80bfa06b",
+      measurementId: "G-4ERP4N2VH3"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ==========================================
+    // 2. GLOBAL STATE VARIABLES
+    // ==========================================
+    let gameState = {};
+    let selectedTableId = null;
+    const OFFICER_PASSCODE = "1234"; // Default 4-digit passcode
+
+    // ==========================================
+    // 3. REALTIME DATABASE LISTENERS
+    // ==========================================
+    db.ref("quizState").on("value", (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      gameState = data;
+      renderProjectorUI();
+      renderFacilitatorUI();
+    });
+
+    // ==========================================
+    // 4. PROJECTOR UI RENDERER
+    // ==========================================
+    function renderProjectorUI() {
+      const stage = gameState.currentStage || "WELCOME";
+
+      // Hide all projector screens
+      document.getElementById("view-welcome").classList.add("hidden");
+      document.getElementById("view-question").classList.add("hidden");
+      document.getElementById("view-standings").classList.add("hidden");
+      document.getElementById("view-podium").classList.add("hidden");
+
+      if (stage === "WELCOME") {
+        document.getElementById("view-welcome").classList.remove("hidden");
+        if (gameState.welcomeMessage) {
+          document.getElementById("welcome-status-text").innerText = gameState.welcomeMessage;
+        }
+      } 
+      else if (stage === "QUESTION" || stage === "ANSWER_REVEAL") {
+        document.getElementById("view-question").classList.remove("hidden");
+        
+        // Update Question View
+        document.getElementById("q-category").innerText = gameState.currentCategory || "General EE";
+        document.getElementById("q-title").innerText = `Question #${gameState.questionNumber || 1}`;
+        document.getElementById("q-points").innerText = `${gameState.currentPoints || 1} Pts`;
+        document.getElementById("q-text").innerText = gameState.currentQuestionText || "Waiting for question...";
+        document.getElementById("timer-display").innerText = String(gameState.timerRemaining || 0).padStart(2, '0');
+
+        // Image / Diagram
+        const mediaBox = document.getElementById("q-media-container");
+        if (gameState.currentImageUrl) {
+          document.getElementById("q-image").src = gameState.currentImageUrl;
+          mediaBox.classList.remove("hidden");
+        } else {
+          mediaBox.classList.add("hidden");
+        }
+
+        // Answer Reveal Toggle
+        const answerBox = document.getElementById("answer-reveal-box");
+        if (stage === "ANSWER_REVEAL") {
+          document.getElementById("q-answer").innerText = gameState.currentAnswerText || "";
+          answerBox.classList.remove("hidden");
+        } else {
+          answerBox.classList.add("hidden");
+        }
+      } 
+      else if (stage === "STANDINGS") {
+        document.getElementById("view-standings").classList.remove("hidden");
+        document.getElementById("round-title-display").innerText = `Round ${gameState.currentRound || 1} Standings`;
+        renderLeaderboardAndLogs();
+      } 
+      else if (stage === "PODIUM") {
+        document.getElementById("view-podium").classList.remove("hidden");
+        renderPodium();
+      }
+    }
+
+    function renderLeaderboardAndLogs() {
+      // Render Leaderboard
+      const tbody = document.getElementById("leaderboard-table-body");
+      tbody.innerHTML = "";
+      
+      const teams = gameState.teams || {};
+      const sortedTeams = Object.keys(teams)
+        .map(id => ({ id, ...teams[id] }))
+        .sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+
+      sortedTeams.forEach((team, index) => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-slate-800/40 transition";
+        row.innerHTML = `
+          <td class="py-3 px-3 font-bold text-slate-400">#${index + 1}</td>
+          <td class="py-3 px-3 font-semibold text-white">${team.name || team.id}</td>
+          <td class="py-3 px-3 text-right text-slate-300 font-mono">+${team.roundScore || 0}</td>
+          <td class="py-3 px-3 text-right font-black text-brand-yellow font-mono">${team.totalScore || 0}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      // Render Resolution Logs
+      const logContainer = document.getElementById("powerup-log-container");
+      logContainer.innerHTML = "";
+      const logs = gameState.latestRoundLogs || ["No power-up events occurred this round."];
+      logs.forEach(log => {
+        const div = document.createElement("div");
+        div.className = "p-2 rounded bg-slate-900 border border-slate-800 text-slate-300";
+        div.innerText = log;
+        logContainer.appendChild(div);
+      });
+    }
+
+    function renderPodium() {
+      const teams = gameState.teams || {};
+      const sorted = Object.keys(teams)
+        .map(id => ({ id, ...teams[id] }))
+        .sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+
+      if (sorted[0]) {
+        document.getElementById("podium-1st-name").innerText = sorted[0].name;
+        document.getElementById("podium-1st-score").innerText = `${sorted[0].totalScore || 0} Pts`;
+      }
+      if (sorted[1]) {
+        document.getElementById("podium-2nd-name").innerText = sorted[1].name;
+        document.getElementById("podium-2nd-score").innerText = `${sorted[1].totalScore || 0} Pts`;
+      }
+      if (sorted[2]) {
+        document.getElementById("podium-3rd-name").innerText = sorted[2].name;
+        document.getElementById("podium-3rd-score").innerText = `${sorted[2].totalScore || 0} Pts`;
+      }
+    }
+
+    // ==========================================
+    // 5. FACILITATOR MODE LOGIC
+    // ==========================================
+    function openFaciLoginModal() {
+      document.getElementById("faci-login-modal").classList.remove("hidden");
+    }
+
+    function closeFaciLoginModal() {
+      document.getElementById("faci-login-modal").classList.add("hidden");
+      document.getElementById("faci-pin-input").value = "";
+    }
+
+    function verifyFaciPasscode() {
+      const pin = document.getElementById("faci-pin-input").value;
+      if (pin === OFFICER_PASSCODE) {
+        closeFaciLoginModal();
+        document.getElementById("facilitator-container").classList.remove("hidden");
+        populateTableDropdown();
+      } else {
+        alert("Invalid Passcode. Please check with officers.");
+      }
+    }
+
+    function exitFaciMode() {
+      document.getElementById("facilitator-container").classList.add("hidden");
+    }
+
+    function populateTableDropdown() {
+      const select = document.getElementById("faci-table-dropdown");
+      select.innerHTML = `<option value="">-- Choose Table --</option>`;
+      const teams = gameState.teams || {};
+      
+      Object.keys(teams).forEach(id => {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.innerText = teams[id].name || id;
+        select.appendChild(opt);
+      });
+    }
+
+    function confirmTableSelection() {
+      const sel = document.getElementById("faci-table-dropdown").value;
+      if (!sel) return alert("Please select a table first.");
+      selectedTableId = sel;
+      
+      const teamName = gameState.teams[sel]?.name || sel;
+      document.getElementById("faci-assigned-table").innerText = `Assigned: ${teamName}`;
+      
+      document.getElementById("faci-step-select-table").classList.add("hidden");
+      document.getElementById("faci-step-deck").classList.remove("hidden");
+      
+      renderFacilitatorUI();
+    }
+
+    function renderFacilitatorUI() {
+      if (!selectedTableId || !gameState.teams || !gameState.teams[selectedTableId]) return;
+
+      const teamData = gameState.teams[selectedTableId];
+      const round = gameState.currentRound || 1;
+
+      document.getElementById("faci-current-round-text").innerText = `Active: Round ${round}`;
+      document.getElementById("faci-sabotage-count-badge").innerText = `Sabotages Received: ${teamData.sabotagesReceived || 0}/3`;
+
+      // Update Double Points Card
+      const doubleBtn = document.getElementById("btn-activate-double");
+      const doubleBadge = document.getElementById("status-double-card");
+      if (teamData.powerUps?.doublePointsCards <= 0) {
+        doubleBtn.disabled = true;
+        doubleBtn.className = "w-full py-2 bg-slate-800 text-slate-500 rounded-lg text-xs font-bold cursor-not-allowed";
+        doubleBadge.innerText = "0 Left";
+        doubleBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-500 border border-slate-700";
+      }
+
+      // Update Shield Card
+      const shieldBtn = document.getElementById("btn-activate-shield");
+      const shieldBadge = document.getElementById("status-shield-card");
+      if (teamData.powerUps?.shieldCards <= 0) {
+        shieldBtn.disabled = true;
+        shieldBtn.className = "w-full py-2 bg-slate-800 text-slate-500 rounded-lg text-xs font-bold cursor-not-allowed";
+        shieldBadge.innerText = "0 Left";
+        shieldBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-500 border border-slate-700";
+      }
+
+      // Populate Sabotage Targets Dropdown (Filter out current team and capped teams)
+      const targetSelect = document.getElementById("sabotage-target-select");
+      targetSelect.innerHTML = `<option value="">-- Select Target Team --</option>`;
+      
+      Object.keys(gameState.teams).forEach(id => {
+        if (id !== selectedTableId) {
+          const t = gameState.teams[id];
+          const isCapped = (t.sabotagesReceived || 0) >= 3;
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.disabled = isCapped;
+          opt.innerText = `${t.name}${isCapped ? ' (CAPPED 3/3)' : ''}`;
+          targetSelect.appendChild(opt);
+        }
+      });
+    }
+
+    // ==========================================
+    // 6. POWER-UP ACTION DISPATCHERS
+    // ==========================================
+    function activateDoublePoints() {
+      if (!selectedTableId) return;
+      const round = gameState.currentRound || 1;
+      
+      db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/doublePoints`).set(true);
+      db.ref(`quizState/teams/${selectedTableId}/powerUps/doublePointsCards`).transaction(count => Math.max(0, (count || 1) - 1));
+      alert("Step-Up Transformer (Double Points) Activated!");
+    }
+
+    function castSabotage() {
+      const targetId = document.getElementById("sabotage-target-select").value;
+      if (!targetId) return alert("Select a target team!");
+      const round = gameState.currentRound || 1;
+
+      db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/sabotageTarget`).set(targetId);
+      db.ref(`quizState/teams/${selectedTableId}/powerUps/sabotageCards`).transaction(count => Math.max(0, (count || 2) - 1));
+      alert("Voltage Drop (Sabotage) target locked!");
+    }
+
+    function activateShield() {
+      if (!selectedTableId) return;
+      const round = gameState.currentRound || 1;
+
+      db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/shieldActive`).set(true);
+      db.ref(`quizState/teams/${selectedTableId}/powerUps/shieldCards`).transaction(count => Math.max(0, (count || 2) - 1));
+      alert("Surge Protector (Shield) Activated!");
+    }
+
+    // ==========================================
+    // 7. MODALS
+    // ==========================================
+    function toggleMechanicsModal(show) {
+      const modal = document.getElementById("mechanics-modal");
+      if (show) modal.classList.remove("hidden");
+      else modal.classList.add("hidden");
+    }
+
+    // Initialize Lucide Icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>
