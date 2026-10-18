@@ -522,6 +522,14 @@ function updateWorkflowControlState() {
   const isTimerZero = timerRemaining === 0;
   const isScoresLocked = gameState.scoresLockedForActiveQ || false;
 
+  const bank = gameState.questionBank || [];
+  const currentIdx = gameState.activeQuestionIndex ?? 0;
+  const currentQ = bank[currentIdx];
+  const nextQ = bank[currentIdx + 1];
+
+  // Check if current question is the last question of the active round
+  const isLastQuestionOfRound = currentQ && (!nextQ || (nextQ.round && nextQ.round > currentQ.round));
+
   // Helper to toggle button disabled state & visual dimming
   function setElementState(id, enabled) {
     const el = document.getElementById(id);
@@ -567,10 +575,17 @@ function updateWorkflowControlState() {
     }
   });
 
-  // 4. QUESTION NAVIGATION LOCKS (Unlocks after scores are locked for active Q)
-  const canAdvanceNextQ = (stage === "ANSWER_REVEAL" && isScoresLocked) || stage === "STANDINGS";
+  // 4. QUESTION NAVIGATION LOCKS
+  // Standard questions: unlock next button when active Q scores are locked or in STANDINGS
+  let canAdvanceNextQ = (stage === "ANSWER_REVEAL" && isScoresLocked) || stage === "STANDINGS";
+
+  // GUARDRAIL: On the last question of a round, block 'Next Q' UNLESS 'RESOLVE & END ROUND' was clicked (stage === STANDINGS)
+  if (isLastQuestionOfRound && stage !== "STANDINGS") {
+    canAdvanceNextQ = false;
+  }
+
   setElementState("btn-next-q", canAdvanceNextQ);
-  setElementState("btn-prev-q", canAdvanceNextQ);
+  setElementState("btn-prev-q", (stage === "ANSWER_REVEAL" && isScoresLocked) || stage === "STANDINGS");
   
   const selectElem = document.getElementById("active-question-select");
   if (selectElem) selectElem.disabled = !canAdvanceNextQ;
