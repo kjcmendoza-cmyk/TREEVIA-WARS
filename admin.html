@@ -119,13 +119,13 @@
 
   <!-- INSERT HERE -->
   <div class="grid grid-cols-2 gap-2 pt-2">
-    <button type="button" onclick="navigateQuestion(-1)" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs border border-slate-700">
-      ◄ Previous Q
-    </button>
-    <button type="button" onclick="navigateQuestion(1)" class="py-2 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs">
-      Next Q ►
-    </button>
-  </div>
+  <button id="btn-prev-q" type="button" onclick="navigateQuestion(-1)" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs border border-slate-700 transition">
+    ◄ Previous Q
+  </button>
+  <button id="btn-next-q" type="button" onclick="navigateQuestion(1)" class="py-2 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs transition">
+    Next Q ►
+  </button>
+</div>
 </div>
 
             <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-1 text-xs">
@@ -143,16 +143,16 @@
             </div>
 
             <div class="grid grid-cols-2 gap-2">
-              <button onclick="startTimer()" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md">
-                ▶ START TIMER
-              </button>
-              <button onclick="stopTimer()" class="py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold text-xs shadow-md">
-                ⏸ STOP / PAUSE
-              </button>
-            </div>
-            <button onclick="resetTimer()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs border border-slate-700">
-              🔄 Reset Default Duration
-            </button>
+  <button id="admin-btn-start-timer" onclick="startTimer()" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md transition">
+    ▶ START TIMER
+  </button>
+  <button id="admin-btn-stop-timer" onclick="stopTimer()" class="py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold text-xs shadow-md transition">
+    ⏸ STOP / PAUSE
+  </button>
+</div>
+<button id="admin-btn-reset-timer" onclick="resetTimer()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs border border-slate-700 transition">
+  🔄 Reset Default Duration
+</button>
           </div>
         </div>
 
@@ -168,9 +168,9 @@
                 </h3>
                 <p class="text-xs text-slate-400">Tick boxes for teams that gave correct answers for this question.</p>
               </div>
-              <button onclick="saveQuestionScores()" class="px-3 py-1.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs rounded-lg transition">
-                💾 Lock Question Scores
-              </button>
+              <button id="btn-lock-scores" onclick="saveQuestionScores()" class="px-3 py-1.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs rounded-lg transition">
+  💾 Lock Question Scores
+</button>
             </div>
 
             <div class="overflow-x-auto">
@@ -426,7 +426,12 @@ db.ref("quizState").on("value", (snapshot) => {
   // Build grouped options
   Object.keys(roundMap).sort((a, b) => a - b).forEach(round => {
     const optgroup = document.createElement("optgroup");
-    optgroup.label = `--- ROUND ${round} ---`;
+    
+    // Extract unique category title(s) for this round
+    const categories = [...new Set(roundMap[round].map(q => q.category).filter(Boolean))].join(", ");
+    const categoryLabel = categories ? ` — ${categories}` : "";
+    
+    optgroup.label = `--- ROUND ${round}${categoryLabel} ---`;
 
     roundMap[round].forEach(q => {
       const opt = document.createElement("option");
@@ -453,23 +458,24 @@ db.ref("quizState").on("value", (snapshot) => {
 }
 
     function loadQuestionToStage() {
-      const idx = parseInt(document.getElementById("active-question-select").value);
-      if (isNaN(idx)) return;
+  const idx = parseInt(document.getElementById("active-question-select").value);
+  if (isNaN(idx)) return;
 
-      const q = gameState.questionBank[idx];
-      db.ref("quizState").update({
-        activeQuestionIndex: idx,
-        currentRound: q.round,
-        questionNumber: q.number,
-        currentCategory: q.category,
-        currentPoints: q.points,
-        currentQuestionText: q.text,
-        currentAnswerText: q.answer,
-        currentImageUrl: q.imageUrl || "",
-        timerRemaining: q.timerDuration || 30,
-        defaultTimerDuration: q.timerDuration || 30
-      });
-    }
+  const q = gameState.questionBank[idx];
+  db.ref("quizState").update({
+    activeQuestionIndex: idx,
+    currentRound: q.round,
+    questionNumber: q.number,
+    currentCategory: q.category,
+    currentPoints: q.points,
+    currentQuestionText: q.text,
+    currentAnswerText: q.answer,
+    currentImageUrl: q.imageUrl || "",
+    timerRemaining: q.timerDuration || 30,
+    defaultTimerDuration: q.timerDuration || 30,
+    scoresLockedForActiveQ: false // Reset score lock flag
+  });
+}
 
 function navigateQuestion(direction) {
   const bank = gameState.questionBank || [];
@@ -481,6 +487,8 @@ function navigateQuestion(direction) {
   if (newIdx >= 0 && newIdx < bank.length) {
     document.getElementById("active-question-select").value = newIdx;
     loadQuestionToStage();
+    // Auto-return stage to Live Question
+    db.ref("quizState/currentStage").set("QUESTION");
   }
 }
 
@@ -502,6 +510,66 @@ function renderStageButtons() {
       btn.classList.add("opacity-40");
     }
   });
+}
+
+function updateWorkflowControlState() {
+  const stage = gameState.currentStage || "WELCOME";
+  const timerRemaining = gameState.timerRemaining || 0;
+  const isTimerZero = timerRemaining === 0;
+  const isScoresLocked = gameState.scoresLockedForActiveQ || false;
+
+  // Helper to toggle button disabled state & visual dimming
+  function setElementState(id, enabled) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !enabled;
+    if (enabled) {
+      el.classList.remove("opacity-30", "cursor-not-allowed", "pointer-events-none");
+    } else {
+      el.classList.add("opacity-30", "cursor-not-allowed", "pointer-events-none");
+    }
+  }
+
+  // 1. STAGE NAVIGATOR LOCKS
+  setElementState("stage-btn-WELCOME", stage === "WELCOME");
+  setElementState("stage-btn-QUESTION", stage === "WELCOME" || stage === "QUESTION");
+
+  // Reveal Answer unlocks when live timer hits 0 / stops
+  const canRevealAnswer = (stage === "QUESTION" && isTimerZero) || stage === "ANSWER_REVEAL";
+  setElementState("stage-btn-ANSWER_REVEAL", canRevealAnswer);
+
+  // Standings unlocks once scores are locked
+  const canGoStandings = (stage === "ANSWER_REVEAL" && isScoresLocked) || stage === "STANDINGS";
+  setElementState("stage-btn-STANDINGS", canGoStandings);
+  setElementState("stage-btn-PODIUM", stage === "STANDINGS" || stage === "PODIUM");
+
+  // 2. TIMER CONSOLE LOCKS (Active only during QUESTION stage)
+  const timerControlsActive = stage === "QUESTION";
+  setElementState("admin-btn-start-timer", timerControlsActive);
+  setElementState("admin-btn-stop-timer", timerControlsActive);
+  setElementState("admin-btn-reset-timer", timerControlsActive);
+
+  // 3. INSTANT SCORE MATRIX LOCKS (Active during ANSWER_REVEAL until locked)
+  const canGradeMatrix = stage === "ANSWER_REVEAL" && !isScoresLocked;
+  setElementState("btn-lock-scores", canGradeMatrix);
+
+  const checkboxes = document.querySelectorAll('#score-matrix-body input[type="checkbox"]');
+  checkboxes.forEach(chk => {
+    chk.disabled = !canGradeMatrix;
+    if (canGradeMatrix) {
+      chk.classList.remove("opacity-30", "cursor-not-allowed");
+    } else {
+      chk.classList.add("opacity-30", "cursor-not-allowed");
+    }
+  });
+
+  // 4. QUESTION NAVIGATION LOCKS (Unlocks after scores are locked for active Q)
+  const canAdvanceNextQ = (stage === "ANSWER_REVEAL" && isScoresLocked) || stage === "STANDINGS";
+  setElementState("btn-next-q", canAdvanceNextQ);
+  setElementState("btn-prev-q", canAdvanceNextQ);
+  
+  const selectElem = document.getElementById("active-question-select");
+  if (selectElem) selectElem.disabled = !canAdvanceNextQ;
 }
 
     // ==========================================
@@ -565,23 +633,21 @@ function renderStageButtons() {
 
   Object.keys(teams).forEach(id => {
     const chk = document.getElementById(`chk-${id}`);
-    const isChecked = chk?.checked;
-
-    if (isChecked) {
+    if (chk?.checked) {
       db.ref(`quizState/teams/${id}/roundScore`).transaction(val => (val || 0) + points);
     }
   });
 
-  // 1. Reset stored temporary checked state
   roundCheckedScores = {};
-
-  // 2. Uncheck all boxes in the matrix
   Object.keys(teams).forEach(id => {
     const chk = document.getElementById(`chk-${id}`);
     if (chk) chk.checked = false;
   });
 
-  alert("Question scores added to current round base!");
+  // Lock score submission for current question in Firebase
+  db.ref("quizState/scoresLockedForActiveQ").set(true, () => {
+    alert("Question scores locked! Click 'Next Q ►' to proceed.");
+  });
 }
 
     // ==========================================
