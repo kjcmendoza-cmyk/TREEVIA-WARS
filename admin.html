@@ -319,15 +319,15 @@
     // 1. FIREBASE INITIALIZATION
     // ==========================================
     const firebaseConfig = {
-      apiKey: "AIzaSyAJ5WzRS8nmn7Xtm7ixFwCJOUxH6nodeZc",
-      authDomain: "treevia-wars.firebaseapp.com",
-      databaseURL: "https://treevia-wars-default-rtdb.firebaseio.com",
-      projectId: "treevia-wars",
-      storageBucket: "treevia-wars.firebasestorage.app",
-      messagingSenderId: "456909123826",
-      appId: "1:456909123826:web:224e0726db9dcd80bfa06b",
-      measurementId: "G-4ERP4N2VH3"
-    };
+  apiKey: "AIzaSyAJ5WzRS8nmn7Xtm7ixFwCJOUxH6nodeZc",
+  authDomain: "treevia-wars.firebaseapp.com",
+  databaseURL: "https://treevia-wars-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "treevia-wars",
+  storageBucket: "treevia-wars.firebasestorage.app",
+  messagingSenderId: "456909123826",
+  appId: "1:456909123826:web:224e0726db9dcd80bfa06b",
+  measurementId: "G-4ERP4N2VH3"
+};
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -340,16 +340,18 @@
     // ==========================================
     // 2. REALTIME DATABASE LISTENERS
     // ==========================================
-    db.ref("quizState").on("value", (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
-      gameState = data;
-      
-      renderLiveControls();
-      renderQuestionDropdown();
-      renderScoreMatrix();
-      renderTeamsTable();
-    });
+    // Realtime DB Listener for admin.html
+db.ref("quizState").on("value", (snapshot) => {
+  const data = snapshot.val() || {};
+  gameState = data;
+  if (!gameState.teams) gameState.teams = {};
+  if (!gameState.questionBank) gameState.questionBank = [];
+
+  renderLiveControls();
+  renderQuestionDropdown();
+  renderScoreMatrix();
+  renderTeamsTable();
+});
 
     // Navigation Tab Switcher
     function switchTab(tab) {
@@ -617,9 +619,6 @@
   db.ref(`quizState/teams/${id}`).set(newTeam)
     .then(() => {
       nameInput.value = "";
-      if (!gameState.teams) gameState.teams = {};
-      gameState.teams[id] = newTeam;
-      renderTeamsTable();
       alert(`Team "${name}" added successfully!`);
     })
     .catch((error) => {
