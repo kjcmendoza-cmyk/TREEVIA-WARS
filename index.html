@@ -420,13 +420,15 @@
     // ==========================================
     // 3. REALTIME DATABASE LISTENERS
     // ==========================================
-    db.ref("quizState").on("value", (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
-      gameState = data;
-      renderProjectorUI();
-      renderFacilitatorUI();
-    });
+    // Updated Realtime DB listener:
+db.ref("quizState").on("value", (snapshot) => {
+  const data = snapshot.val();
+  if (!data) return;
+  gameState = data;
+  renderProjectorUI();
+  populateTableDropdown(); // Dynamically updates dropdown whenever teams change
+  renderFacilitatorUI();
+});
 
     // ==========================================
     // 4. PROJECTOR UI RENDERER
