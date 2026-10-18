@@ -112,11 +112,21 @@
             </h3>
 
             <div class="space-y-2">
-              <label class="text-xs text-slate-400 font-semibold">Select Active Question</label>
-              <select id="active-question-select" onchange="loadQuestionToStage()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
-                <!-- Dynamically populated options -->
-              </select>
-            </div>
+  <label class="text-xs text-slate-400 font-semibold">Select Active Question</label>
+  <select id="active-question-select" onchange="loadQuestionToStage()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
+    <!-- Dynamically populated options -->
+  </select>
+
+  <!-- INSERT HERE -->
+  <div class="grid grid-cols-2 gap-2 pt-2">
+    <button type="button" onclick="navigateQuestion(-1)" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs border border-slate-700">
+      ◄ Previous Q
+    </button>
+    <button type="button" onclick="navigateQuestion(1)" class="py-2 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs">
+      Next Q ►
+    </button>
+  </div>
+</div>
 
             <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-1 text-xs">
               <p><span class="text-slate-400">Category:</span> <strong id="admin-q-category" class="text-white">-</strong></p>
@@ -221,7 +231,29 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
+<!-- Question Bank List Table -->
+<div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4 col-span-1 lg:col-span-2">
+  <h3 class="font-bold text-sm uppercase tracking-wider text-brand-purple">Uploaded Question Bank</h3>
+  
+  <div class="overflow-x-auto max-h-64">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase">
+          <th class="py-2 px-3">Round</th>
+          <th class="py-2 px-3">Q#</th>
+          <th class="py-2 px-3">Category</th>
+          <th class="py-2 px-3">Prompt Preview</th>
+          <th class="py-2 px-3">Answer</th>
+          <th class="py-2 px-3 text-right">Pts</th>
+          <th class="py-2 px-3 text-right">Action</th>
+        </tr>
+      </thead>
+      <tbody id="question-bank-table-body" class="divide-y divide-slate-800/60 text-xs">
+        <!-- Dynamic Question List -->
+      </tbody>
+    </table>
+  </div>
+</div>
         <!-- 1. Question Bank Setup -->
         <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
           <h3 class="font-bold text-sm uppercase tracking-wider text-brand-purple">Add / Edit Question</h3>
@@ -351,6 +383,7 @@ db.ref("quizState").on("value", (snapshot) => {
   renderQuestionDropdown();
   renderScoreMatrix();
   renderTeamsTable();
+  renderQuestionBankTable();
 });
 
     // Navigation Tab Switcher
@@ -376,26 +409,47 @@ db.ref("quizState").on("value", (snapshot) => {
     }
 
     function renderQuestionDropdown() {
-      const select = document.getElementById("active-question-select");
-      const questions = gameState.questionBank || [];
-      
-      select.innerHTML = `<option value="">-- Choose Question --</option>`;
-      questions.forEach((q, idx) => {
-        const opt = document.createElement("option");
-        opt.value = idx;
-        opt.innerText = `R${q.round} Q${q.number}: ${q.category} (${q.points} pts)`;
-        if (gameState.activeQuestionIndex === idx) opt.selected = true;
-        select.appendChild(opt);
-      });
+  const select = document.getElementById("active-question-select");
+  const questions = gameState.questionBank || [];
+  
+  select.innerHTML = `<option value="">-- Select Active Question --</option>`;
 
-      // Update question display details
-      if (gameState.activeQuestionIndex !== undefined && questions[gameState.activeQuestionIndex]) {
-        const q = questions[gameState.activeQuestionIndex];
-        document.getElementById("admin-q-category").innerText = q.category;
-        document.getElementById("admin-q-points").innerText = `${q.points} Pts`;
-        document.getElementById("admin-q-answer").innerText = q.answer;
+  // Group questions by round
+  const roundMap = {};
+  questions.forEach((q, idx) => {
+    const roundNum = q.round || 1;
+    if (!roundMap[roundNum]) roundMap[roundNum] = [];
+    roundMap[roundNum].push({ ...q, originalIndex: idx });
+  });
+
+  // Build grouped options
+  Object.keys(roundMap).sort((a, b) => a - b).forEach(round => {
+    const optgroup = document.createElement("optgroup");
+    optgroup.label = `--- ROUND ${round} ---`;
+
+    roundMap[round].forEach(q => {
+      const opt = document.createElement("option");
+      opt.value = q.originalIndex;
+      const promptSnippet = q.text ? ` — "${q.text.slice(0, 35)}..."` : "";
+      opt.innerText = `Q${q.number}: ${q.category}${promptSnippet} (${q.points} pts)`;
+      
+      if (gameState.activeQuestionIndex === q.originalIndex) {
+        opt.selected = true;
       }
-    }
+      optgroup.appendChild(opt);
+    });
+
+    select.appendChild(optgroup);
+  });
+
+  // Update question details display
+  if (gameState.activeQuestionIndex !== undefined && questions[gameState.activeQuestionIndex]) {
+    const q = questions[gameState.activeQuestionIndex];
+    document.getElementById("admin-q-category").innerText = q.category;
+    document.getElementById("admin-q-points").innerText = `${q.points} Pts`;
+    document.getElementById("admin-q-answer").innerText = q.answer;
+  }
+}
 
     function loadQuestionToStage() {
       const idx = parseInt(document.getElementById("active-question-select").value);
@@ -415,6 +469,19 @@ db.ref("quizState").on("value", (snapshot) => {
         defaultTimerDuration: q.timerDuration || 30
       });
     }
+
+function navigateQuestion(direction) {
+  const bank = gameState.questionBank || [];
+  if (bank.length === 0) return;
+
+  let currentIdx = gameState.activeQuestionIndex ?? 0;
+  let newIdx = currentIdx + direction;
+
+  if (newIdx >= 0 && newIdx < bank.length) {
+    document.getElementById("active-question-select").value = newIdx;
+    loadQuestionToStage();
+  }
+}
 
     // ==========================================
     // 4. LIVE TIMER CONTROL LOGIC
@@ -721,6 +788,39 @@ db.ref("quizState").on("value", (snapshot) => {
 
     // Initialize Lucide Icons
     lucide.createIcons();
+    function renderQuestionBankTable() {
+  const tbody = document.getElementById("question-bank-table-body");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const bank = gameState.questionBank || [];
+  bank.forEach((q, index) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="py-2 px-3 font-bold text-brand-purple">R${q.round}</td>
+      <td class="py-2 px-3 font-bold text-white">Q${q.number}</td>
+      <td class="py-2 px-3 text-slate-300">${q.category}</td>
+      <td class="py-2 px-3 text-slate-400 truncate max-w-xs">${q.text}</td>
+      <td class="py-2 px-3 text-emerald-400 font-mono">${q.answer}</td>
+      <td class="py-2 px-3 text-right font-bold text-brand-yellow">${q.points}</td>
+      <td class="py-2 px-3 text-right">
+        <button onclick="deleteQuestion(${index})" class="text-rose-400 hover:text-rose-300 font-bold">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function deleteQuestion(index) {
+  if (!confirm("Are you sure you want to delete this question?")) return;
+  
+  const bank = gameState.questionBank || [];
+  bank.splice(index, 1);
+  
+  db.ref("quizState/questionBank").set(bank, () => {
+    alert("Question deleted successfully!");
+  });
+}
   </script>
 </body>
 </html>
