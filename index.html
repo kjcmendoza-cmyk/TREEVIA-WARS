@@ -104,7 +104,20 @@
         </p>
       </div>
     </section>
-
+<!-- 1.5 ROUND INTRO SCREEN -->
+    <section id="view-round-intro" class="hidden text-center max-w-4xl space-y-8 my-auto">
+      <div class="space-y-4">
+        <span id="round-intro-badge" class="px-5 py-2 rounded-full text-sm font-black uppercase tracking-widest bg-brand-purple/20 text-brand-purple border border-brand-purple/40">
+          ROUND 1
+        </span>
+        <h2 id="round-intro-title" class="text-5xl md:text-7xl font-black tracking-tight text-white uppercase mt-4 leading-tight">
+          CIRCUIT THEORY & EE BASICS
+        </h2>
+        <p class="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto pt-2">
+          Get ready teams! Facilitators may now activate power-up cards on their table decks.
+        </p>
+      </div>
+    </section>
     <!-- 2. LIVE QUESTION VIEW -->
     <section id="view-question" class="hidden w-full max-w-5xl space-y-6">
       <!-- Category & Points Header -->
@@ -439,6 +452,7 @@ db.ref("quizState").on("value", (snapshot) => {
 
       // Hide all projector screens
       document.getElementById("view-welcome").classList.add("hidden");
+      document.getElementById("view-round-intro").classList.add("hidden");
       document.getElementById("view-question").classList.add("hidden");
       document.getElementById("view-standings").classList.add("hidden");
       document.getElementById("view-podium").classList.add("hidden");
@@ -449,6 +463,11 @@ db.ref("quizState").on("value", (snapshot) => {
           document.getElementById("welcome-status-text").innerText = gameState.welcomeMessage;
         }
       } 
+      else if (stage === "ROUND_INTRO") {
+        document.getElementById("view-round-intro").classList.remove("hidden");
+        document.getElementById("round-intro-badge").innerText = `ROUND ${gameState.currentRound || 1}`;
+        document.getElementById("round-intro-title").innerText = gameState.currentCategory || "General EE";
+      }
       else if (stage === "QUESTION" || stage === "ANSWER_REVEAL") {
         document.getElementById("view-question").classList.remove("hidden");
         

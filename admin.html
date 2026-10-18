@@ -81,21 +81,24 @@
       <!-- Stage Navigator Bar -->
 <div class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-2">
   <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Stage Navigator (Main Display Flow)</span>
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+  <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
     <button id="stage-btn-WELCOME" onclick="setStage('WELCOME')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center transition-all duration-200">
       1. Welcome Screen
     </button>
+    <button id="stage-btn-ROUND_INTRO" onclick="setStage('ROUND_INTRO')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-pink/20 hover:bg-brand-pink/30 text-brand-pink border border-brand-pink/40 flex items-center justify-center transition-all duration-200">
+      2. Round Title
+    </button>
     <button id="stage-btn-QUESTION" onclick="setStage('QUESTION')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-purple/20 hover:bg-brand-purple/30 text-brand-purple border border-brand-purple/40 flex items-center justify-center transition-all duration-200">
-      2. Live Question
+      3. Live Question
     </button>
     <button id="stage-btn-ANSWER_REVEAL" onclick="setStage('ANSWER_REVEAL')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 flex items-center justify-center transition-all duration-200">
-      3. Reveal Answer
+      4. Reveal Answer
     </button>
     <button id="stage-btn-STANDINGS" onclick="setStage('STANDINGS')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-yellow/20 hover:bg-brand-yellow/30 text-brand-yellow border border-brand-yellow/40 flex items-center justify-center transition-all duration-200">
-      4. Standings & Resolve
+      5. Standings & Resolve
     </button>
     <button id="stage-btn-PODIUM" onclick="setStage('PODIUM')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-yellow to-brand-pink text-white flex items-center justify-center transition-all duration-200">
-      5. Final Podium
+      6. Final Podium
     </button>
   </div>
 </div>
@@ -498,7 +501,7 @@ function navigateQuestion(direction) {
 
 function renderStageButtons() {
   const currentStage = gameState.currentStage || "WELCOME";
-  const stages = ["WELCOME", "QUESTION", "ANSWER_REVEAL", "STANDINGS", "PODIUM"];
+  const stages = ["WELCOME", "ROUND_INTRO", "QUESTION", "ANSWER_REVEAL", "STANDINGS", "PODIUM"];
 
   stages.forEach(stage => {
     const btn = document.getElementById(`stage-btn-${stage}`);
@@ -544,7 +547,8 @@ function updateWorkflowControlState() {
 
   // 1. STAGE NAVIGATOR LOCKS
   setElementState("stage-btn-WELCOME", stage === "WELCOME");
-  setElementState("stage-btn-QUESTION", stage === "WELCOME" || stage === "QUESTION");
+  setElementState("stage-btn-ROUND_INTRO", true); // Always accessible
+  setElementState("stage-btn-QUESTION", stage === "WELCOME" || stage === "ROUND_INTRO" || stage === "QUESTION");
 
   // Reveal Answer unlocks when live timer hits 0 / stops
   const canRevealAnswer = (stage === "QUESTION" && isTimerZero) || stage === "ANSWER_REVEAL";
@@ -576,10 +580,9 @@ function updateWorkflowControlState() {
   });
 
   // 4. QUESTION NAVIGATION LOCKS
-  // Standard questions: unlock next button when active Q scores are locked or in STANDINGS
   let canAdvanceNextQ = (stage === "ANSWER_REVEAL" && isScoresLocked) || stage === "STANDINGS";
 
-  // GUARDRAIL: On the last question of a round, block 'Next Q' UNLESS 'RESOLVE & END ROUND' was clicked (stage === STANDINGS)
+  // GUARDRAIL: On the last question of a round, block 'Next Q' UNLESS 'RESOLVE & END ROUND' was clicked
   if (isLastQuestionOfRound && stage !== "STANDINGS") {
     canAdvanceNextQ = false;
   }
