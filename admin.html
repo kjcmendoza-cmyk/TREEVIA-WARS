@@ -225,9 +225,9 @@
           <h2 class="font-bold text-base text-white">Dynamic Event Configuration</h2>
           <p class="text-xs text-slate-400">Parameters are fully editable on the fly without touching code[cite: 2].</p>
         </div>
-        <button onclick="seedDefaultData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold">
-          ⚡ Reset to Demo Data
-        </button>
+        <button onclick="seedDefaultData()" class="px-3 py-1.5 bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 border border-rose-700/50 rounded-lg text-xs font-bold transition">
+  🗑️ Reset / Clear All to Zero
+</button>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -819,70 +819,32 @@ function updateWorkflowControlState() {
       });
     }
 
-    // Seed Demo Data
+    // Clear all data and reset system to zero
     function seedDefaultData() {
-      if (!confirm("This will overwrite current contest state with fresh demo data. Continue?")) return;
+      if (!confirm("Are you sure you want to clear ALL teams, questions, and timers to start from scratch? This action cannot be undone.")) return;
 
-      const defaultSeed = {
+      const emptyState = {
         currentStage: "WELCOME",
         welcomeMessage: "Waiting for Quizmaster to initialize Stage 1...",
         activeQuestionIndex: 0,
         currentRound: 1,
         questionNumber: 1,
-        currentCategory: "Circuit Theory & EE Basics",
-        currentPoints: 10,
-        currentQuestionText: "What electrical theorem states that any linear bilateral network can be replaced by an equivalent circuit consisting of an ideal voltage source in series with an equivalent resistor?",
-        currentAnswerText: "Thévenin's Theorem",
-        timerRemaining: 30,
+        currentCategory: "-",
+        currentPoints: 0,
+        currentQuestionText: "No active question set.",
+        currentAnswerText: "-",
+        currentImageUrl: "",
+        timerRemaining: 0,
         defaultTimerDuration: 30,
-        latestRoundLogs: ["System initialized. Awaiting Round 1 completion."],
-        teams: {
-          table_1: {
-            name: "Table 1 - Circuit Breakers",
-            totalScore: 0,
-            roundScore: 0,
-            sabotagesReceived: 0,
-            powerUps: { doublePointsCards: 1, sabotageCards: 2, shieldCards: 2 }
-          },
-          table_2: {
-            name: "Table 2 - Flux Capacitors",
-            totalScore: 0,
-            roundScore: 0,
-            sabotagesReceived: 0,
-            powerUps: { doublePointsCards: 1, sabotageCards: 2, shieldCards: 2 }
-          },
-          table_3: {
-            name: "Table 3 - Ohm's Law Enforcers",
-            totalScore: 0,
-            roundScore: 0,
-            sabotagesReceived: 0,
-            powerUps: { doublePointsCards: 1, sabotageCards: 2, shieldCards: 2 }
-          }
-        },
-        questionBank: [
-          {
-            round: 1,
-            number: 1,
-            category: "Circuit Theory & EE Basics",
-            text: "What electrical theorem states that any linear bilateral network can be replaced by an equivalent circuit consisting of an ideal voltage source in series with an equivalent resistor?",
-            answer: "Thévenin's Theorem",
-            points: 10,
-            timerDuration: 30
-          },
-          {
-            round: 1,
-            number: 2,
-            category: "Electromagnetics",
-            text: "Calculate the total equivalent capacitance of two 10µF capacitors connected in series.",
-            answer: "5 µF",
-            points: 15,
-            timerDuration: 45
-          }
-        ]
+        scoresLockedForActiveQ: false,
+        latestRoundLogs: ["Database reset. Ready to add teams and questions."],
+        teams: {},
+        questionBank: []
       };
 
-      db.ref("quizState").set(defaultSeed, () => {
-        alert("Demo data successfully seeded into Firebase Database!");
+      db.ref("quizState").set(emptyState, () => {
+        roundCheckedScores = {};
+        alert("All teams, questions, and timers have been completely cleared!");
       });
     }
 
