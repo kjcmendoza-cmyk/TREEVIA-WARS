@@ -775,301 +775,362 @@
         }
       });
     }
-// WEB AUDIO SYNTHESIZER ENGINE (NO EXTERNAL MP3 REQUIRED)
-// 1. SYNTHESIZER ENGINE (DEFINED FIRST)
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-function playSciFiSound(type) {
-  if (!window.AudioContext && !window.webkitAudioContext) return;
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+    // =========================================================================
+    // WEB AUDIO SYNTHESIZER ENGINE (SFX + GENERATIVE LUSH BGM)
+    // =========================================================================
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  const now = audioCtx.currentTime;
+    function playSciFiSound(type) {
+      if (!window.AudioContext && !window.webkitAudioContext) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
 
-  if (type === 'tick') {
-    // Timer Countdown Tick (10s - 6s)
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.setValueAtTime(800, now);
-    gain.gain.setValueAtTime(0.08, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-    osc.start(now);
-    osc.stop(now + 0.05);
+      const now = audioCtx.currentTime;
 
-  } else if (type === 'alarm') {
-    // Critical Timer Alarm Zap (5s - 1s)
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(900, now);
-    osc.frequency.linearRampToValueAtTime(400, now + 0.12);
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-    osc.start(now);
-    osc.stop(now + 0.12);
+      if (type === 'tick') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(800, now);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
 
-  } else if (type === 'next_question') {
-    // Next Question: High-tech ascending laser chirp
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.setValueAtTime(440, now);
-    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.18);
-    gain.gain.setValueAtTime(0.18, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-    osc.start(now);
-    osc.stop(now + 0.18);
+      } else if (type === 'alarm') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(900, now);
+        osc.frequency.linearRampToValueAtTime(400, now + 0.12);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.12);
 
-  } else if (type === 'reveal_answer') {
-    // Answer Reveal: Triumphant 4-note ascending chime
-    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'triangle';
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      const startTime = now + (idx * 0.06);
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0.15, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
-      osc.start(startTime);
-      osc.stop(startTime + 0.3);
-    });
+      } else if (type === 'next_question') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(1760, now + 0.18);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.18);
 
-  } else if (type === 'double_points' || type === 'powerup') {
-    // Step-Up Transformer: High-power rising spin-up surge
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sawtooth';
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.setValueAtTime(200, now);
-    osc.frequency.exponentialRampToValueAtTime(1600, now + 0.35);
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-    osc.start(now);
-    osc.stop(now + 0.35);
+      } else if (type === 'reveal_answer') {
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          const startTime = now + (idx * 0.06);
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0.15, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+          osc.start(startTime);
+          osc.stop(startTime + 0.3);
+        });
 
-  } else if (type === 'sabotage') {
-    // Voltage Drop: Heavy pitch-drop zap crash
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sawtooth';
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.setValueAtTime(800, now);
-    osc.frequency.linearRampToValueAtTime(120, now + 0.3);
-    gain.gain.setValueAtTime(0.22, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-    osc.start(now);
-    osc.stop(now + 0.3);
+      } else if (type === 'double_points' || type === 'powerup') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(1600, now + 0.35);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.start(now);
+        osc.stop(now + 0.35);
 
-  } else if (type === 'shield') {
-    // Surge Protector: Forcefield envelope pulse
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.setValueAtTime(300, now);
-    osc.frequency.linearRampToValueAtTime(600, now + 0.15);
-    osc.frequency.linearRampToValueAtTime(300, now + 0.3);
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-    osc.start(now);
-    osc.stop(now + 0.35);
+      } else if (type === 'sabotage') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.linearRampToValueAtTime(120, now + 0.3);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
 
-  } else if (type === 'clincher') {
-    // Sudden-Death Clincher: High-register victory coin ping
-    [880, 1320].forEach((freq, idx) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      const startTime = now + (idx * 0.08);
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0.18, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
-      osc.start(startTime);
-      osc.stop(startTime + 0.25);
-    });
+      } else if (type === 'shield') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.linearRampToValueAtTime(600, now + 0.15);
+        osc.frequency.linearRampToValueAtTime(300, now + 0.3);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.start(now);
+        osc.stop(now + 0.35);
 
-  } else if (type === 'round_intro') {
-    // Round Intro: Deep sci-fi charging baseline
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.setValueAtTime(150, now);
-    osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
-    gain.gain.setValueAtTime(0.25, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-    osc.start(now);
-    osc.stop(now + 0.45);
+      } else if (type === 'clincher') {
+        [880, 1320].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          const startTime = now + (idx * 0.08);
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0.18, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+          osc.start(startTime);
+          osc.stop(startTime + 0.25);
+        });
 
-  } else if (type === 'standings') {
-    // Standings: 3-note resolution chime
-    [300, 450, 600].forEach((freq, idx) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      const startTime = now + (idx * 0.07);
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0.15, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.2);
-      osc.start(startTime);
-      osc.stop(startTime + 0.2);
-    });
+      } else if (type === 'round_intro') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc.start(now);
+        osc.stop(now + 0.45);
 
-  } else if (type === 'podium') {
-    // Grand Finale Podium: Victory fanfare
-    [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, idx) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'triangle';
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      const startTime = now + (idx * 0.09);
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0.2, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
-      osc.start(startTime);
-      osc.stop(startTime + 0.4);
-    });
-  }
-}
+      } else if (type === 'standings') {
+        [300, 450, 600].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          const startTime = now + (idx * 0.07);
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0.15, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.2);
+          osc.start(startTime);
+          osc.stop(startTime + 0.2);
+        });
 
-// =========================================================================
-// DYNAMIC PROCEDURAL SYNTH BGM ENGINE (ZERO EXTERNAL MP3 REQUIRED)
-// =========================================================================
-let isBgmMuted = false;
-let bgmTimer = null;
-let bgmStep = 0;
-
-// Sci-Fi Pentatonic Ambient Progression (E Minor Matrix)
-const bgmNotes = [
-  164.81, 196.00, 246.94, 329.63, // E3, G3, B3, E4
-  164.81, 220.00, 246.94, 293.66, // E3, A3, B3, D4
-  130.81, 164.81, 196.00, 246.94, // C3, E3, G3, B3
-  146.83, 196.00, 220.00, 293.66  // D3, G3, A3, D4
-];
-
-function playBgmPulse() {
-  if (isBgmMuted || !window.AudioContext) return;
-  if (audioCtx.state === 'suspended') return;
-
-  const stage = gameState.currentStage || "WELCOME";
-  if (stage === "ANSWER_REVEAL" || stage === "PODIUM") return;
-
-  const now = audioCtx.currentTime;
-  const freq = bgmNotes[bgmStep % bgmNotes.length];
-  bgmStep++;
-
-  const remTime = gameState.timerRemaining || 30;
-  let gainVal = 0.035; // Gentle baseline ambient volume
-  let duration = 0.18;
-  let waveType = 'sine';
-  let filterCutoff = 650;
-
-  if (stage === "QUESTION") {
-    if (remTime <= 5) {
-      gainVal = 0.07;
-      waveType = 'sawtooth';
-      duration = 0.09;
-      filterCutoff = 1800; // Open filter for sharp tension
-    } else if (remTime <= 10) {
-      gainVal = 0.05;
-      waveType = 'triangle';
-      duration = 0.14;
-      filterCutoff = 1100;
-    }
-  }
-
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  const filter = audioCtx.createBiquadFilter();
-
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(filterCutoff, now);
-
-  osc.type = waveType;
-  osc.frequency.setValueAtTime(freq, now);
-
-  gain.gain.setValueAtTime(gainVal, now);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-  osc.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  osc.start(now);
-  osc.stop(now + duration);
-}
-
-function startBgmScheduler() {
-  if (bgmTimer) clearTimeout(bgmTimer);
-
-  function scheduleNextBeat() {
-    playBgmPulse();
-
-    const stage = gameState.currentStage || "WELCOME";
-    let nextInterval = 320; // Base 93 BPM ambient tempo
-
-    if (stage === "QUESTION") {
-      const remTime = gameState.timerRemaining || 30;
-      if (remTime <= 5) {
-        nextInterval = 130; // Rapid ~230 BPM critical sprint
-      } else if (remTime <= 10) {
-        nextInterval = 210; // ~140 BPM warning speed
+      } else if (type === 'podium') {
+        [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          const startTime = now + (idx * 0.09);
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0.2, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+          osc.start(startTime);
+          osc.stop(startTime + 0.4);
+        });
       }
     }
 
-    bgmTimer = setTimeout(scheduleNextBeat, nextInterval);
-  }
+    // =========================================================================
+    // GENERATIVE BGM ENGINE
+    // =========================================================================
+    let isBgmMuted = false;
+    let bgmTimer = null;
+    let bassOsc = null;
+    let bassGain = null;
 
-  scheduleNextBeat();
-}
+    const SCALES = {
+      ambient: [164.81, 196.00, 220.00, 246.94, 293.66, 329.63, 392.00, 440.00],
+      tense:   [164.81, 174.61, 207.65, 246.94, 277.18, 329.63, 349.23, 415.30],
+      chimes:  [659.25, 783.99, 880.00, 987.77, 1174.66, 1318.51]
+    };
 
-function toggleBgm() {
-  isBgmMuted = !isBgmMuted;
-  const btn = document.getElementById("bgm-toggle-btn");
-  const label = document.getElementById("bgm-btn-text");
+    function updateBassDrone(stage, remTime) {
+      if (isBgmMuted || !window.AudioContext || audioCtx.state === 'suspended') {
+        if (bassGain) bassGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+        return;
+      }
 
-  if (isBgmMuted) {
-    if (btn) btn.classList.add("opacity-50");
-    if (label) label.innerText = "BGM Muted";
-    showToast("AUDIO MUTED", "Background music paused.", "yellow", "volume-x", null);
-  } else {
-    if (btn) btn.classList.remove("opacity-50");
-    if (label) label.innerText = "BGM Active";
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    showToast("AUDIO ACTIVE", "Procedural synth music pulse online.", "lime", "disc", "round_intro");
-  }
-}
+      const now = audioCtx.currentTime;
 
-function showToast(title, message, type = "yellow", iconName = "zap", soundType = "double_points") {
-  if (soundType) playSciFiSound(soundType);
+      if (!bassOsc) {
+        bassOsc = audioCtx.createOscillator();
+        bassGain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
 
-  const container = document.getElementById("toast-container");
-  if (!container) return;
+        bassOsc.type = 'sine';
+        bassOsc.frequency.setValueAtTime(82.41, now);
 
-  const colorMap = {
-    yellow: { border: "border-fuse-yellow/70", bg: "bg-fuse-yellow/10", text: "text-fuse-yellow", glow: "glow-yellow" },
-    pink: { border: "border-fuse-pink/70", bg: "bg-fuse-pink/10", text: "text-fuse-pink", glow: "glow-pink" },
-    cyan: { border: "border-fuse-cyan/70", bg: "bg-fuse-cyan/10", text: "text-fuse-cyan", glow: "glow-cyan" },
-    lime: { border: "border-fuse-lime/70", bg: "bg-fuse-lime/10", text: "text-fuse-lime", glow: "glow-lime" },
-    rose: { border: "border-rose-500/70", bg: "bg-rose-500/10", text: "text-rose-400", glow: "" }
-  };
-  // ... rest of your showToast code stays unchanged
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(220, now);
+
+        bassGain.gain.setValueAtTime(0.001, now);
+
+        bassOsc.connect(filter);
+        filter.connect(bassGain);
+        bassGain.connect(audioCtx.destination);
+        bassOsc.start(now);
+      }
+
+      let targetGain = 0.04;
+      let targetFreq = 82.41;
+
+      if (stage === "QUESTION") {
+        if (remTime <= 5) {
+          targetGain = 0.08;
+          targetFreq = 110.00;
+        } else if (remTime <= 10) {
+          targetGain = 0.06;
+        }
+      } else if (stage === "ANSWER_REVEAL" || stage === "PODIUM") {
+        targetGain = 0.001;
+      }
+
+      bassGain.gain.setTargetAtTime(targetGain, now, 0.5);
+      bassOsc.frequency.setTargetAtTime(targetFreq, now, 0.3);
+    }
+
+    function playBgmPulse() {
+      if (isBgmMuted || !window.AudioContext || audioCtx.state === 'suspended') return;
+
+      const stage = gameState.currentStage || "WELCOME";
+      if (stage === "ANSWER_REVEAL" || stage === "PODIUM") return;
+
+      const remTime = gameState.timerRemaining || 30;
+      const now = audioCtx.currentTime;
+
+      let activeScale = SCALES.ambient;
+      let gainVal = 0.025;
+      let duration = 0.6;
+      let waveType = 'sine';
+      let filterCutoff = 800;
+
+      if (stage === "QUESTION") {
+        if (remTime <= 5) {
+          activeScale = SCALES.tense;
+          gainVal = 0.055;
+          waveType = 'sawtooth';
+          duration = 0.12;
+          filterCutoff = 2200;
+        } else if (remTime <= 10) {
+          activeScale = SCALES.tense;
+          gainVal = 0.04;
+          waveType = 'triangle';
+          duration = 0.25;
+          filterCutoff = 1300;
+        }
+      }
+
+      const freq = activeScale[Math.floor(Math.random() * activeScale.length)];
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(filterCutoff, now);
+
+      osc.type = waveType;
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(gainVal, now + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration);
+
+      if (stage !== "QUESTION" || remTime > 10) {
+        if (Math.random() < 0.18) {
+          const chimeFreq = SCALES.chimes[Math.floor(Math.random() * SCALES.chimes.length)];
+          const chimeOsc = audioCtx.createOscillator();
+          const chimeGain = audioCtx.createGain();
+
+          chimeOsc.type = 'sine';
+          chimeOsc.frequency.setValueAtTime(chimeFreq, now);
+
+          chimeGain.gain.setValueAtTime(0.001, now);
+          chimeGain.gain.linearRampToValueAtTime(0.012, now + 0.08);
+          chimeGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+
+          chimeOsc.connect(chimeGain);
+          chimeGain.connect(audioCtx.destination);
+
+          chimeOsc.start(now);
+          chimeOsc.stop(now + 1.2);
+        }
+      }
+
+      updateBassDrone(stage, remTime);
+    }
+
+    function startBgmScheduler() {
+      if (bgmTimer) clearTimeout(bgmTimer);
+
+      function scheduleNextBeat() {
+        playBgmPulse();
+
+        const stage = gameState.currentStage || "WELCOME";
+        let nextInterval = Math.floor(Math.random() * 80) + 260;
+
+        if (stage === "QUESTION") {
+          const remTime = gameState.timerRemaining || 30;
+          if (remTime <= 5) {
+            nextInterval = 120;
+          } else if (remTime <= 10) {
+            nextInterval = 200;
+          }
+        }
+
+        bgmTimer = setTimeout(scheduleNextBeat, nextInterval);
+      }
+
+      scheduleNextBeat();
+    }
+
+    function toggleBgm() {
+      isBgmMuted = !isBgmMuted;
+      const btn = document.getElementById("bgm-toggle-btn");
+      const label = document.getElementById("bgm-btn-text");
+
+      if (isBgmMuted) {
+        if (btn) btn.classList.add("opacity-50");
+        if (label) label.innerText = "BGM Muted";
+        if (bassGain) bassGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+        showToast("AUDIO MUTED", "Background music paused.", "yellow", "volume-x", null);
+      } else {
+        if (btn) btn.classList.remove("opacity-50");
+        if (label) label.innerText = "BGM Active";
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        showToast("AUDIO ACTIVE", "Generative synth music pulse online.", "lime", "disc", "round_intro");
+      }
+    }
+
+    function showToast(title, message, type = "yellow", iconName = "zap", soundType = "double_points") {
+      if (soundType) playSciFiSound(soundType);
+
+      const container = document.getElementById("toast-container");
+      if (!container) return;
+
+      const colorMap = {
+        yellow: { border: "border-fuse-yellow/70", bg: "bg-fuse-yellow/10", text: "text-fuse-yellow", glow: "glow-yellow" },
+        pink: { border: "border-fuse-pink/70", bg: "bg-fuse-pink/10", text: "text-fuse-pink", glow: "glow-pink" },
+        cyan: { border: "border-fuse-cyan/70", bg: "bg-fuse-cyan/10", text: "text-fuse-cyan", glow: "glow-cyan" },
+        lime: { border: "border-fuse-lime/70", bg: "bg-fuse-lime/10", text: "text-fuse-lime", glow: "glow-lime" },
+        rose: { border: "border-rose-500/70", bg: "bg-rose-500/10", text: "text-rose-400", glow: "" }
+      };
 
       const theme = colorMap[type] || colorMap.yellow;
       const toastId = `toast-${Date.now()}`;
@@ -1157,9 +1218,6 @@ function showToast(title, message, type = "yellow", iconName = "zap", soundType 
       closePowerUpConfirmModal();
     }
 
-    // ==========================================
-    // STAGED POWER-UP REQUEST HANDLERS
-    // ==========================================
     function requestDoublePoints() {
       if (!selectedTableId) return;
 
@@ -1227,86 +1285,78 @@ function showToast(title, message, type = "yellow", iconName = "zap", soundType 
     }
 
     let lastRenderedStage = null;
-let lastRenderedQuestionNum = null;
+    let lastRenderedQuestionNum = null;
 
-function renderProjectorUI() {
-  const stage = gameState.currentStage || "WELCOME";
-  const qNum = gameState.questionNumber || 1;
+    function renderProjectorUI() {
+      const stage = gameState.currentStage || "WELCOME";
+      const qNum = gameState.questionNumber || 1;
 
-  // AUTO-PLAY SOUND EFFECTS ON STAGE OR QUESTION TRANSITION
-  if (stage !== lastRenderedStage || (stage === "QUESTION" && qNum !== lastRenderedQuestionNum)) {
-    if (lastRenderedStage !== null) {
-      if (stage === "QUESTION") {
-        playSciFiSound('next_question');
-      } else if (stage === "ANSWER_REVEAL") {
-        playSciFiSound('reveal_answer');
-      } else if (stage === "ROUND_INTRO") {
-        playSciFiSound('round_intro');
-      } else if (stage === "STANDINGS") {
-        playSciFiSound('standings');
-      } else if (stage === "PODIUM") {
-        playSciFiSound('podium');
+      if (stage !== lastRenderedStage || (stage === "QUESTION" && qNum !== lastRenderedQuestionNum)) {
+        if (lastRenderedStage !== null) {
+          if (stage === "QUESTION") playSciFiSound('next_question');
+          else if (stage === "ANSWER_REVEAL") playSciFiSound('reveal_answer');
+          else if (stage === "ROUND_INTRO") playSciFiSound('round_intro');
+          else if (stage === "STANDINGS") playSciFiSound('standings');
+          else if (stage === "PODIUM") playSciFiSound('podium');
+        }
+        lastRenderedStage = stage;
+        lastRenderedQuestionNum = qNum;
+      }
+
+      document.getElementById("view-welcome").classList.add("hidden");
+      document.getElementById("view-round-intro").classList.add("hidden");
+      document.getElementById("view-question").classList.add("hidden");
+      document.getElementById("view-standings").classList.add("hidden");
+      document.getElementById("view-podium").classList.add("hidden");
+
+      if (stage === "WELCOME") {
+        document.getElementById("view-welcome").classList.remove("hidden");
+      }
+      else if (stage === "ROUND_INTRO") {
+        document.getElementById("view-round-intro").classList.remove("hidden");
+        document.getElementById("round-intro-badge").innerText = `ROUND ${gameState.currentRound || 1}`;
+        document.getElementById("round-intro-title").innerText = gameState.currentCategory || "General EE";
+      }
+      else if (stage === "QUESTION" || stage === "ANSWER_REVEAL") {
+        document.getElementById("view-question").classList.remove("hidden");
+        const oscCanvas = document.getElementById("oscilloscope-canvas");
+        if (oscCanvas && (oscCanvas.width === 0 || oscCanvas.height === 0)) {
+          oscCanvas.width = oscCanvas.offsetWidth || 200;
+          oscCanvas.height = oscCanvas.offsetHeight || 50;
+        }
+        document.getElementById("q-category").innerText = gameState.currentCategory || "General EE";
+        document.getElementById("q-title").innerText = `Question #${gameState.questionNumber || 1}`;
+        document.getElementById("q-points").innerText = `${gameState.currentPoints || 10} Pts`;
+        document.getElementById("q-text").innerText = gameState.currentQuestionText || "Waiting for question...";
+
+        renderReactorTimer(gameState.timerRemaining || 0, gameState.timerTotal || 30);
+
+        const mediaBox = document.getElementById("q-media-container");
+        if (gameState.currentImageUrl) {
+          document.getElementById("q-image").src = gameState.currentImageUrl;
+          mediaBox.classList.remove("hidden");
+        } else {
+          mediaBox.classList.add("hidden");
+        }
+
+        const answerBox = document.getElementById("answer-reveal-box");
+        if (stage === "ANSWER_REVEAL") {
+          document.getElementById("q-answer").innerText = gameState.currentAnswerText || "";
+          answerBox.classList.remove("hidden");
+        } else {
+          answerBox.classList.add("hidden");
+        }
+      } 
+      else if (stage === "STANDINGS") {
+        document.getElementById("view-standings").classList.remove("hidden");
+        document.getElementById("round-title-display").innerText = `Round ${gameState.currentRound || 1} Standings`;
+        renderLeaderboardAndLogs();
+      } 
+      else if (stage === "PODIUM") {
+        document.getElementById("view-podium").classList.remove("hidden");
+        renderPodium();
       }
     }
-    lastRenderedStage = stage;
-    lastRenderedQuestionNum = qNum;
-  } // <--- Line 1141 closes the sound trigger check; REMOVE THE extra '}' that was on line 1142!
-
-  // Hide all view sections
-  document.getElementById("view-welcome").classList.add("hidden");
-  document.getElementById("view-round-intro").classList.add("hidden");
-  document.getElementById("view-question").classList.add("hidden");
-  document.getElementById("view-standings").classList.add("hidden");
-  document.getElementById("view-podium").classList.add("hidden");
-
-  if (stage === "WELCOME") {
-    document.getElementById("view-welcome").classList.remove("hidden");
-  }
-  else if (stage === "ROUND_INTRO") {
-    document.getElementById("view-round-intro").classList.remove("hidden");
-    document.getElementById("round-intro-badge").innerText = `ROUND ${gameState.currentRound || 1}`;
-    document.getElementById("round-intro-title").innerText = gameState.currentCategory || "General EE";
-  }
-  else if (stage === "QUESTION" || stage === "ANSWER_REVEAL") {
-    document.getElementById("view-question").classList.remove("hidden");
-    const oscCanvas = document.getElementById("oscilloscope-canvas");
-    if (oscCanvas && (oscCanvas.width === 0 || oscCanvas.height === 0)) {
-      oscCanvas.width = oscCanvas.offsetWidth || 200;
-      oscCanvas.height = oscCanvas.offsetHeight || 50;
-    }
-    document.getElementById("q-category").innerText = gameState.currentCategory || "General EE";
-    document.getElementById("q-title").innerText = `Question #${gameState.questionNumber || 1}`;
-    document.getElementById("q-points").innerText = `${gameState.currentPoints || 10} Pts`;
-    document.getElementById("q-text").innerText = gameState.currentQuestionText || "Waiting for question...";
-
-    renderReactorTimer(gameState.timerRemaining || 0, gameState.timerTotal || 30);
-
-    const mediaBox = document.getElementById("q-media-container");
-    if (gameState.currentImageUrl) {
-      document.getElementById("q-image").src = gameState.currentImageUrl;
-      mediaBox.classList.remove("hidden");
-    } else {
-      mediaBox.classList.add("hidden");
-    }
-
-    const answerBox = document.getElementById("answer-reveal-box");
-    if (stage === "ANSWER_REVEAL") {
-      document.getElementById("q-answer").innerText = gameState.currentAnswerText || "";
-      answerBox.classList.remove("hidden");
-    } else {
-      answerBox.classList.add("hidden");
-    }
-  } 
-  else if (stage === "STANDINGS") {
-    document.getElementById("view-standings").classList.remove("hidden");
-    document.getElementById("round-title-display").innerText = `Round ${gameState.currentRound || 1} Standings`;
-    renderLeaderboardAndLogs();
-  } 
-  else if (stage === "PODIUM") {
-    document.getElementById("view-podium").classList.remove("hidden");
-    renderPodium();
-  }
-} // <--- Line 1198 correctly closes renderProjectorUI()
 
     function renderReactorTimer(remaining, total) {
       const display = document.getElementById("timer-display");
@@ -1332,7 +1382,6 @@ function renderProjectorUI() {
         statusText.style.color = "#FF2A8A";
         wrapper.classList.add("animate-pulse-fast");
 
-        // Activate Plasma Sparks on Transmission Towers during critical timer
         if (leftSpark) leftSpark.classList.remove("hidden");
         if (rightSpark) rightSpark.classList.remove("hidden");
       } else if (remaining <= 10) {
@@ -1439,7 +1488,6 @@ function renderProjectorUI() {
         currentRank += groupSize;
       });
 
-      // 1st Place Slot
       if (sorted[0]) {
         const label1 = placements[sorted[0].id] || "Grand Champion";
         document.getElementById("podium-1st-name").innerText = sorted[0].name;
@@ -1453,7 +1501,6 @@ function renderProjectorUI() {
         }
       }
 
-      // 2nd Place Slot
       if (sorted[1]) {
         const label2 = placements[sorted[1].id] || "2nd Place";
         document.getElementById("podium-2nd-name").innerText = sorted[1].name;
@@ -1467,7 +1514,6 @@ function renderProjectorUI() {
         }
       }
 
-      // 3rd Place Slot
       if (sorted[2]) {
         const label3 = placements[sorted[2].id] || "3rd Place";
         document.getElementById("podium-3rd-name").innerText = sorted[2].name;
@@ -1564,50 +1610,50 @@ function renderProjectorUI() {
     }
 
     function activateDoublePoints() {
-  const round = gameState.currentRound || 1;
+      const round = gameState.currentRound || 1;
 
-  if (isFirebaseConnected && db) {
-    db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/doublePoints`).set(true);
-    db.ref(`quizState/teams/${selectedTableId}/powerUps/doublePointsCards`).transaction(count => Math.max(0, (count || 1) - 1));
-  }
+      if (isFirebaseConnected && db) {
+        db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/doublePoints`).set(true);
+        db.ref(`quizState/teams/${selectedTableId}/powerUps/doublePointsCards`).transaction(count => Math.max(0, (count || 1) - 1));
+      }
 
-  showToast("POWER-UP ACTIVATED", "Step-Up Transformer (Double Points) is active for this round!", "yellow", "zap", "double_points");
-}
+      showToast("POWER-UP ACTIVATED", "Step-Up Transformer (Double Points) is active for this round!", "yellow", "zap", "double_points");
+    }
 
-function castSabotage() {
-  const targetId = document.getElementById("sabotage-target-select").value;
-  const round = gameState.currentRound || 1;
+    function castSabotage() {
+      const targetId = document.getElementById("sabotage-target-select").value;
+      const round = gameState.currentRound || 1;
 
-  if (isFirebaseConnected && db) {
-    db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/sabotageTarget`).set(targetId);
-    db.ref(`quizState/teams/${selectedTableId}/powerUps/sabotageCards`).transaction(count => Math.max(0, (count || 2) - 1));
-  }
+      if (isFirebaseConnected && db) {
+        db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/sabotageTarget`).set(targetId);
+        db.ref(`quizState/teams/${selectedTableId}/powerUps/sabotageCards`).transaction(count => Math.max(0, (count || 2) - 1));
+      }
 
-  showToast("SABOTAGE CAST", "Voltage Drop (-1 Pt) target locked and engaged!", "pink", "flame", "sabotage");
-}
+      showToast("SABOTAGE CAST", "Voltage Drop (-1 Pt) target locked and engaged!", "pink", "flame", "sabotage");
+    }
 
-function activateShield() {
-  const round = gameState.currentRound || 1;
+    function activateShield() {
+      const round = gameState.currentRound || 1;
 
-  if (isFirebaseConnected && db) {
-    db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/shieldActive`).set(true);
-    db.ref(`quizState/teams/${selectedTableId}/powerUps/shieldCards`).transaction(count => Math.max(0, (count || 2) - 1));
-  }
+      if (isFirebaseConnected && db) {
+        db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/shieldActive`).set(true);
+        db.ref(`quizState/teams/${selectedTableId}/powerUps/shieldCards`).transaction(count => Math.max(0, (count || 2) - 1));
+      }
 
-  showToast("SHIELD DEPLOYED", "Surge Protector is active. Immunity granted against incoming attacks!", "cyan", "shield-check", "shield");
-}
+      showToast("SHIELD DEPLOYED", "Surge Protector is active. Immunity granted against incoming attacks!", "cyan", "shield-check", "shield");
+    }
 
-function toggleMechanicsModal(show) {
-  const modal = document.getElementById("mechanics-modal");
-  if (show) modal.classList.remove("hidden");
-  else modal.classList.add("hidden");
-}
+    function toggleMechanicsModal(show) {
+      const modal = document.getElementById("mechanics-modal");
+      if (show) modal.classList.remove("hidden");
+      else modal.classList.add("hidden");
+    }
 
-function awardClincherFaci(points, rankLabel) {
-  if (!selectedTableId) {
-    showToast("NO TABLE ASSIGNED", "Please select your table first.", "rose", "alert-circle", "sabotage");
-    return;
-  }
+    function awardClincherFaci(points, rankLabel) {
+      if (!selectedTableId) {
+        showToast("NO TABLE ASSIGNED", "Please select your table first.", "rose", "alert-circle", "sabotage");
+        return;
+      }
       const teamName = gameState.teams[selectedTableId]?.name || selectedTableId;
 
       if (!confirm(`Award +${points} pts (${rankLabel} Clincher) to ${teamName}?`)) return;
@@ -1630,10 +1676,8 @@ function awardClincherFaci(points, rankLabel) {
     }
 
     // =========================================================================
-    // DYNAMIC ELECTRICAL ENGINE (CANVAS ELECTRONS + OSCILLOSCOPE + HOLOGRAMS)
+    // DYNAMIC ELECTRICAL CANVAS & OSCILLOSCOPE
     // =========================================================================
-    
-    // 1. BACKGROUND CIRCUIT CANVAS WITH TIMER-REACTIVE ELECTRON PULSES
     (function initCircuitCanvas() {
       const canvas = document.getElementById("circuit-canvas");
       if (!canvas) return;
@@ -1690,7 +1734,6 @@ function awardClincherFaci(points, rankLabel) {
       function draw() {
         ctx.clearRect(0, 0, width, height);
 
-        // Timer Reactive Multiplier
         const remTime = gameState.timerRemaining || 30;
         let speedMultiplier = 1;
         let isCritical = false;
@@ -1702,7 +1745,6 @@ function awardClincherFaci(points, rankLabel) {
           speedMultiplier = 2.0;
         }
 
-        // Draw Floating EE Symbol Holograms
         floatingHolograms.forEach(h => {
           h.y += h.speedY;
           if (h.y < -30) {
@@ -1716,7 +1758,6 @@ function awardClincherFaci(points, rankLabel) {
         });
         ctx.globalAlpha = 1.0;
 
-        // Draw Electron Stream Traces
         electrons.forEach(el => {
           el.pulse += 0.05;
           const currentSpeed = el.baseSpeed * speedMultiplier;
@@ -1749,13 +1790,11 @@ function awardClincherFaci(points, rankLabel) {
           ctx.lineTo(el.x, el.y);
           ctx.stroke();
 
-          // Electron Lead Glow Point
           ctx.beginPath();
           ctx.fillStyle = "#FFFFFF";
           ctx.arc(el.x, el.y, isCritical ? 3 : 2, 0, Math.PI * 2);
           ctx.fill();
 
-          // Glowing Junction Nodes
           if (Math.abs(el.x % GRID_SIZE) < 3 && Math.abs(el.y % GRID_SIZE) < 3) {
             ctx.beginPath();
             ctx.fillStyle = drawColor;
@@ -1771,7 +1810,6 @@ function awardClincherFaci(points, rankLabel) {
       draw();
     })();
 
-    // 2. LIVE OSCILLOSCOPE WAVEFORM ENGINE
     (function initOscilloscope() {
       const oscCanvas = document.getElementById("oscilloscope-canvas");
       if (!oscCanvas) return;
@@ -1790,7 +1828,6 @@ function awardClincherFaci(points, rankLabel) {
       function animateOscilloscope() {
         ctx.clearRect(0, 0, width, height);
 
-        // Draw Oscilloscope Background Grid Lines
         ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
         ctx.lineWidth = 1;
         for (let x = 0; x < width; x += 15) {
@@ -1842,7 +1879,6 @@ function awardClincherFaci(points, rankLabel) {
 
         step += speed;
 
-        // Render Sine Waveform
         ctx.beginPath();
         ctx.lineWidth = 2;
         ctx.strokeStyle = waveColor;
@@ -1864,19 +1900,17 @@ function awardClincherFaci(points, rankLabel) {
     })();
 
     window.onload = function() {
-  lucide.createIcons();
-  renderProjectorUI();
-  
-  // Start dynamic BGM pulse loop
-  startBgmScheduler();
+      lucide.createIcons();
+      renderProjectorUI();
+      
+      startBgmScheduler();
 
-  // Auto-resume audio context on first user click
-  document.body.addEventListener('click', () => {
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-  }, { once: true });
-};
+      document.body.addEventListener('click', () => {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }, { once: true });
+    };
   </script>
 </body>
 </html>
