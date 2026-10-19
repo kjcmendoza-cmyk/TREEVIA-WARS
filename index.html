@@ -96,11 +96,11 @@
     }
 
     .text-gradient-fuse {
-  background: linear-gradient(135deg, #FFE600 0%, #FF2A8A 45%, #00FF9D 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+      background: linear-gradient(135deg, #FFE600 0%, #FF2A8A 45%, #00FF9D 100%);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
     /* Neon Glow Filters */
     .glow-cyan { filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.8)); }
@@ -153,6 +153,14 @@
       transform-origin: 50% 50%;
     }
 
+    /* Electric Spark Arc Keyframes */
+    @keyframes spark-flash {
+      0%, 100% { opacity: 0; }
+      10%, 90% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .animate-spark { animation: spark-flash 0.25s ease-in-out infinite alternate; }
+
     /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: rgba(7, 6, 17, 0.5); }
@@ -161,6 +169,9 @@
   </style>
 </head>
 <body class="bg-fuse-void text-slate-100 min-h-screen font-sans antialiased flex flex-col justify-between relative overflow-x-hidden bg-circuit-grid">
+
+  <!-- DYNAMIC ANIMATED CANVAS FOR FLOWING ELECTRONS & CIRCUIT TRACES -->
+  <canvas id="circuit-canvas" class="pointer-events-none fixed inset-0 z-0 opacity-40"></canvas>
 
   <!-- FLOATING TACTICAL TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container" class="fixed top-20 right-6 z-[100] flex flex-col space-y-3 pointer-events-none max-w-sm w-full"></div>
@@ -192,22 +203,35 @@
     </svg>
   </div>
 
-  <!-- BOTTOM TRANSMISSION LINE SILHOUETTES -->
-  <div class="pointer-events-none fixed bottom-0 inset-x-0 z-0 opacity-35 flex justify-between items-end px-8 md:px-16">
-    <svg class="w-44 h-44 text-fuse-cyan glow-cyan" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M50 5 L20 95 H80 L50 5Z M30 60 H70 M25 75 H75 M35 40 H65 M50 5 V95" />
-      <line x1="10" y1="35" x2="90" y2="35" />
-      <line x1="15" y1="55" x2="85" y2="55" />
-      <circle cx="10" cy="35" r="2" fill="#00FF9D" />
-      <circle cx="90" cy="35" r="2" fill="#00FF9D" />
-    </svg>
-    <svg class="w-44 h-44 text-fuse-lime glow-lime" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M50 5 L20 95 H80 L50 5Z M30 60 H70 M25 75 H75 M35 40 H65 M50 5 V95" />
-      <line x1="10" y1="35" x2="90" y2="35" />
-      <line x1="15" y1="55" x2="85" y2="55" />
-      <circle cx="10" cy="35" r="2" fill="#FFE600" />
-      <circle cx="90" cy="35" r="2" fill="#FFE600" />
-    </svg>
+  <!-- BOTTOM TRANSMISSION LINE SILHOUETTES WITH REACTIVE PLASMA SPARKS -->
+  <div class="pointer-events-none fixed bottom-0 inset-x-0 z-0 opacity-40 flex justify-between items-end px-8 md:px-16">
+    <div class="relative">
+      <svg class="w-44 h-44 text-fuse-cyan glow-cyan" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M50 5 L20 95 H80 L50 5Z M30 60 H70 M25 75 H75 M35 40 H65 M50 5 V95" />
+        <line x1="10" y1="35" x2="90" y2="35" />
+        <line x1="15" y1="55" x2="85" y2="55" />
+        <circle cx="10" cy="35" r="2" fill="#00FF9D" />
+        <circle cx="90" cy="35" r="2" fill="#00FF9D" />
+      </svg>
+      <!-- Left Tower Plasma Spark Arc Overlay -->
+      <svg id="spark-left" class="hidden absolute top-4 left-0 w-full h-12 text-fuse-pink animate-spark glow-pink" viewBox="0 0 100 30" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10 20 Q30 5, 50 20 T90 20" stroke="#FF2A8A" stroke-dasharray="3 3"/>
+      </svg>
+    </div>
+
+    <div class="relative">
+      <svg class="w-44 h-44 text-fuse-lime glow-lime" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M50 5 L20 95 H80 L50 5Z M30 60 H70 M25 75 H75 M35 40 H65 M50 5 V95" />
+        <line x1="10" y1="35" x2="90" y2="35" />
+        <line x1="15" y1="55" x2="85" y2="55" />
+        <circle cx="10" cy="35" r="2" fill="#FFE600" />
+        <circle cx="90" cy="35" r="2" fill="#FFE600" />
+      </svg>
+      <!-- Right Tower Plasma Spark Arc Overlay -->
+      <svg id="spark-right" class="hidden absolute top-4 left-0 w-full h-12 text-fuse-yellow animate-spark glow-yellow" viewBox="0 0 100 30" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10 20 Q30 5, 50 20 T90 20" stroke="#FFE600" stroke-dasharray="3 3"/>
+      </svg>
+    </div>
   </div>
 
   <!-- TOP BAR HEADER -->
@@ -337,20 +361,30 @@
           </div>
         </div>
 
-        <div class="glass-panel hud-card p-8 border border-fuse-border flex flex-col justify-center items-center text-center bg-gradient-to-b from-fuse-card via-fuse-dark to-fuse-void relative overflow-hidden">
-          <span class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 font-mono">Tractor Reactor Core</span>
+        <div class="glass-panel hud-card p-6 border border-fuse-border flex flex-col justify-center items-center text-center bg-gradient-to-b from-fuse-card via-fuse-dark to-fuse-void relative overflow-hidden">
+          
+          <!-- LIVE OSCILLOSCOPE MONITOR DISPLAY -->
+          <div class="w-full bg-fuse-void/90 border border-fuse-border/80 rounded-xl p-2 mb-3 relative overflow-hidden">
+            <div class="flex justify-between items-center text-[9px] font-mono text-slate-400 mb-1 px-1">
+              <span class="text-fuse-cyan font-bold">OSCILLOSCOPE SIGNAL</span>
+              <span id="osc-freq-text" class="text-fuse-lime">60 Hz AC</span>
+            </div>
+            <canvas id="oscilloscope-canvas" class="w-full h-12 block rounded bg-fuse-dark/90 border border-slate-800"></canvas>
+          </div>
 
-          <div class="relative w-52 h-52 flex items-center justify-center my-2">
+          <span class="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 font-mono">Tractor Reactor Core</span>
+
+          <div class="relative w-48 h-48 flex items-center justify-center my-1">
             <div class="absolute inset-0 rounded-full border-2 border-dashed border-fuse-purple/50 animate-spin-slow"></div>
             <div class="absolute inset-2 rounded-full border border-dotted border-fuse-cyan/60 animate-spin-reverse glow-cyan"></div>
             
-            <svg class="w-48 h-48">
-              <circle class="text-fuse-dark" stroke-width="10" stroke="currentColor" fill="transparent" r="82" cx="96" cy="96" />
-              <circle id="timer-progress-ring" class="timer-ring-circle text-fuse-lime" stroke-width="10" stroke-dasharray="515" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="82" cx="96" cy="96" />
+            <svg class="w-44 h-44">
+              <circle class="text-fuse-dark" stroke-width="10" stroke="currentColor" fill="transparent" r="76" cx="88" cy="88" />
+              <circle id="timer-progress-ring" class="timer-ring-circle text-fuse-lime" stroke-width="10" stroke-dasharray="477" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="76" cx="88" cy="88" />
             </svg>
 
             <div id="timer-number-wrapper" class="absolute inset-0 flex flex-col items-center justify-center">
-              <span id="timer-display" class="text-6xl font-black text-fuse-lime font-mono tracking-tighter drop-shadow-lg glow-lime">
+              <span id="timer-display" class="text-5xl font-black text-fuse-lime font-mono tracking-tighter drop-shadow-lg glow-lime">
                 00
               </span>
               <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 font-mono mt-1">SEC LEFT</span>
@@ -925,7 +959,11 @@
       }
       else if (stage === "QUESTION" || stage === "ANSWER_REVEAL") {
         document.getElementById("view-question").classList.remove("hidden");
-        
+        const oscCanvas = document.getElementById("oscilloscope-canvas");
+  if (oscCanvas && (oscCanvas.width === 0 || oscCanvas.height === 0)) {
+    oscCanvas.width = oscCanvas.offsetWidth || 200;
+    oscCanvas.height = oscCanvas.offsetHeight || 50;
+  }
         document.getElementById("q-category").innerText = gameState.currentCategory || "General EE";
         document.getElementById("q-title").innerText = `Question #${gameState.questionNumber || 1}`;
         document.getElementById("q-points").innerText = `${gameState.currentPoints || 10} Pts`;
@@ -965,10 +1003,13 @@
       const ring = document.getElementById("timer-progress-ring");
       const statusText = document.getElementById("timer-status-text");
       const wrapper = document.getElementById("timer-number-wrapper");
+      
+      const leftSpark = document.getElementById("spark-left");
+      const rightSpark = document.getElementById("spark-right");
 
       display.innerText = String(remaining).padStart(2, '0');
 
-      const perimeter = 515;
+      const perimeter = 477;
       const progressRatio = remaining / (total || 30);
       const strokeOffset = perimeter * (1 - progressRatio);
       ring.style.strokeDashoffset = strokeOffset;
@@ -979,18 +1020,28 @@
         statusText.innerText = "CRITICAL WARNING";
         statusText.style.color = "#FF2A8A";
         wrapper.classList.add("animate-pulse-fast");
+
+        // Activate Plasma Sparks on Transmission Towers during critical timer
+        if (leftSpark) leftSpark.classList.remove("hidden");
+        if (rightSpark) rightSpark.classList.remove("hidden");
       } else if (remaining <= 10) {
         ring.style.stroke = "#FFE600";
         display.style.color = "#FFE600";
         statusText.innerText = "REACTOR HEATING";
         statusText.style.color = "#FFE600";
         wrapper.classList.remove("animate-pulse-fast");
+
+        if (leftSpark) leftSpark.classList.add("hidden");
+        if (rightSpark) rightSpark.classList.add("hidden");
       } else {
         ring.style.stroke = "#00FF9D";
         display.style.color = "#00FF9D";
         statusText.innerText = "REACTOR STABLE";
         statusText.style.color = "#00F0FF";
         wrapper.classList.remove("animate-pulse-fast");
+
+        if (leftSpark) leftSpark.classList.add("hidden");
+        if (rightSpark) rightSpark.classList.add("hidden");
       }
     }
 
@@ -1000,15 +1051,13 @@
       
       const teams = gameState.teams || {};
       const sortedTeams = Object.keys(teams)
-  .map(id => ({ id, ...teams[id] }))
-  .sort((a, b) => {
-    // 1. Primary: Compare totalScore
-    if ((b.totalScore || 0) !== (a.totalScore || 0)) {
-      return (b.totalScore || 0) - (a.totalScore || 0);
-    }
-    // 2. Secondary: Compare tiebreakerScore if totalScore is equal
-    return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
-  });
+        .map(id => ({ id, ...teams[id] }))
+        .sort((a, b) => {
+          if ((b.totalScore || 0) !== (a.totalScore || 0)) {
+            return (b.totalScore || 0) - (a.totalScore || 0);
+          }
+          return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
+        });
 
       sortedTeams.forEach((team, index) => {
         const row = document.createElement("tr");
@@ -1034,94 +1083,92 @@
     }
 
     function renderPodium() {
-  const teams = gameState.teams || {};
-  const sorted = Object.keys(teams)
-    .map(id => ({ id, ...teams[id] }))
-    .sort((a, b) => {
-      if ((b.totalScore || 0) !== (a.totalScore || 0)) {
-        return (b.totalScore || 0) - (a.totalScore || 0);
-      }
-      return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
-    });
+      const teams = gameState.teams || {};
+      const sorted = Object.keys(teams)
+        .map(id => ({ id, ...teams[id] }))
+        .sort((a, b) => {
+          if ((b.totalScore || 0) !== (a.totalScore || 0)) {
+            return (b.totalScore || 0) - (a.totalScore || 0);
+          }
+          return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
+        });
 
-  // Group team IDs by totalScore to detect tied podium spots
-  const scoreGroups = {};
-  sorted.forEach(t => {
-    const score = t.totalScore || 0;
-    if (!scoreGroups[score]) scoreGroups[score] = [];
-    scoreGroups[score].push(t.id);
-  });
-
-  const sortedScores = Object.keys(scoreGroups).map(Number).sort((a, b) => b - a);
-
-  const placements = {};
-  let currentRank = 1;
-
-  sortedScores.forEach(score => {
-    const group = scoreGroups[score];
-    const groupSize = group.length;
-
-    if (groupSize > 1) {
-      group.forEach(id => {
-        if (currentRank <= 3) {
-          placements[id] = "(Tiebreaker)";
-        } else {
-          placements[id] = `${currentRank}th Place`;
-        }
+      const scoreGroups = {};
+      sorted.forEach(t => {
+        const score = t.totalScore || 0;
+        if (!scoreGroups[score]) scoreGroups[score] = [];
+        scoreGroups[score].push(t.id);
       });
-    } else {
-      const id = group[0];
-      if (currentRank === 1) placements[id] = "Grand Champion";
-      else if (currentRank === 2) placements[id] = "2nd Place";
-      else if (currentRank === 3) placements[id] = "3rd Place";
-      else placements[id] = `${currentRank}th Place`;
-    }
 
-    currentRank += groupSize;
-  });
+      const sortedScores = Object.keys(scoreGroups).map(Number).sort((a, b) => b - a);
+      const placements = {};
+      let currentRank = 1;
 
-  // 1st Place Slot
-  if (sorted[0]) {
-    const label1 = placements[sorted[0].id] || "Grand Champion";
-    document.getElementById("podium-1st-name").innerText = sorted[0].name;
-    document.getElementById("podium-1st-score").innerText = `${sorted[0].totalScore || 0} Pts`;
-    const elem1 = document.getElementById("podium-1st-label");
-    if (elem1) {
-      elem1.innerText = label1;
-      elem1.className = label1 === "(Tiebreaker)" 
-        ? "text-xs font-black font-mono uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 animate-pulse"
-        : "text-xs font-black font-mono uppercase tracking-widest text-fuse-yellow px-3 py-1 rounded-full bg-fuse-yellow/20 border border-fuse-yellow/50";
-    }
-  }
+      sortedScores.forEach(score => {
+        const group = scoreGroups[score];
+        const groupSize = group.length;
 
-  // 2nd Place Slot
-  if (sorted[1]) {
-    const label2 = placements[sorted[1].id] || "2nd Place";
-    document.getElementById("podium-2nd-name").innerText = sorted[1].name;
-    document.getElementById("podium-2nd-score").innerText = `${sorted[1].totalScore || 0} Pts`;
-    const elem2 = document.getElementById("podium-2nd-label");
-    if (elem2) {
-      elem2.innerText = label2;
-      elem2.className = label2 === "(Tiebreaker)" 
-        ? "text-xs font-black font-mono uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 animate-pulse"
-        : "text-xs font-black font-mono uppercase tracking-widest text-slate-400";
-    }
-  }
+        if (groupSize > 1) {
+          group.forEach(id => {
+            if (currentRank <= 3) {
+              placements[id] = "(Tiebreaker)";
+            } else {
+              placements[id] = `${currentRank}th Place`;
+            }
+          });
+        } else {
+          const id = group[0];
+          if (currentRank === 1) placements[id] = "Grand Champion";
+          else if (currentRank === 2) placements[id] = "2nd Place";
+          else if (currentRank === 3) placements[id] = "3rd Place";
+          else placements[id] = `${currentRank}th Place`;
+        }
 
-  // 3rd Place Slot
-  if (sorted[2]) {
-    const label3 = placements[sorted[2].id] || "3rd Place";
-    document.getElementById("podium-3rd-name").innerText = sorted[2].name;
-    document.getElementById("podium-3rd-score").innerText = `${sorted[2].totalScore || 0} Pts`;
-    const elem3 = document.getElementById("podium-3rd-label");
-    if (elem3) {
-      elem3.innerText = label3;
-      elem3.className = label3 === "(Tiebreaker)" 
-        ? "text-xs font-black font-mono uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 animate-pulse"
-        : "text-xs font-black font-mono uppercase tracking-widest text-slate-400";
+        currentRank += groupSize;
+      });
+
+      // 1st Place Slot
+      if (sorted[0]) {
+        const label1 = placements[sorted[0].id] || "Grand Champion";
+        document.getElementById("podium-1st-name").innerText = sorted[0].name;
+        document.getElementById("podium-1st-score").innerText = `${sorted[0].totalScore || 0} Pts`;
+        const elem1 = document.getElementById("podium-1st-label");
+        if (elem1) {
+          elem1.innerText = label1;
+          elem1.className = label1 === "(Tiebreaker)" 
+            ? "text-xs font-black font-mono uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 animate-pulse"
+            : "text-xs font-black font-mono uppercase tracking-widest text-fuse-yellow px-3 py-1 rounded-full bg-fuse-yellow/20 border border-fuse-yellow/50";
+        }
+      }
+
+      // 2nd Place Slot
+      if (sorted[1]) {
+        const label2 = placements[sorted[1].id] || "2nd Place";
+        document.getElementById("podium-2nd-name").innerText = sorted[1].name;
+        document.getElementById("podium-2nd-score").innerText = `${sorted[1].totalScore || 0} Pts`;
+        const elem2 = document.getElementById("podium-2nd-label");
+        if (elem2) {
+          elem2.innerText = label2;
+          elem2.className = label2 === "(Tiebreaker)" 
+            ? "text-xs font-black font-mono uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 animate-pulse"
+            : "text-xs font-black font-mono uppercase tracking-widest text-slate-400";
+        }
+      }
+
+      // 3rd Place Slot
+      if (sorted[2]) {
+        const label3 = placements[sorted[2].id] || "3rd Place";
+        document.getElementById("podium-3rd-name").innerText = sorted[2].name;
+        document.getElementById("podium-3rd-score").innerText = `${sorted[2].totalScore || 0} Pts`;
+        const elem3 = document.getElementById("podium-3rd-label");
+        if (elem3) {
+          elem3.innerText = label3;
+          elem3.className = label3 === "(Tiebreaker)" 
+            ? "text-xs font-black font-mono uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 animate-pulse"
+            : "text-xs font-black font-mono uppercase tracking-widest text-slate-400";
+        }
+      }
     }
-  }
-}
 
     function openFaciLoginModal() {
       document.getElementById("faci-login-modal").classList.remove("hidden");
@@ -1244,36 +1291,271 @@
       else modal.classList.add("hidden");
     }
 
+    function awardClincherFaci(points, rankLabel) {
+      if (!selectedTableId) {
+        showToast("NO TABLE ASSIGNED", "Please select your table first.", "rose", "alert-circle");
+        return;
+      }
+
+      const teamName = gameState.teams[selectedTableId]?.name || selectedTableId;
+
+      if (!confirm(`Award +${points} pts (${rankLabel} Clincher) to ${teamName}?`)) return;
+
+      if (isFirebaseConnected && db) {
+        db.ref(`quizState/teams/${selectedTableId}`).transaction(team => {
+          if (team) {
+            team.tiebreakerScore = (team.tiebreakerScore || 0) + points;
+            team.totalScore = (team.totalScore || 0) + points;
+          }
+          return team;
+        }, (err) => {
+          if (!err) {
+            showToast("CLINCHER AWARDED", `Added +${points} pts (${rankLabel}) to ${teamName}!`, "yellow", "trophy");
+          } else {
+            showToast("ERROR", err.message, "rose", "alert-circle");
+          }
+        });
+      }
+    }
+
+    // =========================================================================
+    // DYNAMIC ELECTRICAL ENGINE (CANVAS ELECTRONS + OSCILLOSCOPE + HOLOGRAMS)
+    // =========================================================================
+    
+    // 1. BACKGROUND CIRCUIT CANVAS WITH TIMER-REACTIVE ELECTRON PULSES
+    (function initCircuitCanvas() {
+      const canvas = document.getElementById("circuit-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+
+      let width = (canvas.width = window.innerWidth);
+      let height = (canvas.height = window.innerHeight);
+
+      window.addEventListener("resize", () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+
+      const GRID_SIZE = 40;
+      const electrons = [];
+      const NUM_ELECTRONS = 35;
+      const colors = ["#00F0FF", "#00FF9D", "#FFE600", "#FF2A8A"];
+
+      const eeSymbols = ["Ω", "⏚", "⚡", "∿", "V", "A", "F", "H"];
+      const floatingHolograms = [];
+      const NUM_HOLOGRAMS = 12;
+
+      for (let i = 0; i < NUM_HOLOGRAMS; i++) {
+        floatingHolograms.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          symbol: eeSymbols[Math.floor(Math.random() * eeSymbols.length)],
+          size: Math.floor(Math.random() * 18) + 14,
+          speedY: (Math.random() * 0.4 + 0.1) * -1,
+          opacity: Math.random() * 0.18 + 0.05,
+          color: colors[Math.floor(Math.random() * colors.length)]
+        });
+      }
+
+      function createElectron() {
+        const isHorizontal = Math.random() > 0.5;
+        const gridCoord = Math.floor(Math.random() * (isHorizontal ? height : width) / GRID_SIZE) * GRID_SIZE;
+        return {
+          x: isHorizontal ? (Math.random() > 0.5 ? 0 : width) : gridCoord,
+          y: isHorizontal ? gridCoord : (Math.random() > 0.5 ? 0 : height),
+          isHorizontal: isHorizontal,
+          direction: Math.random() > 0.5 ? 1 : -1,
+          length: Math.random() * 25 + 15,
+          baseSpeed: Math.random() * 2 + 1.5,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          pulse: Math.random() * Math.PI
+        };
+      }
+
+      for (let i = 0; i < NUM_ELECTRONS; i++) {
+        electrons.push(createElectron());
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Timer Reactive Multiplier
+        const remTime = gameState.timerRemaining || 30;
+        let speedMultiplier = 1;
+        let isCritical = false;
+
+        if (remTime <= 5) {
+          speedMultiplier = 3.5;
+          isCritical = true;
+        } else if (remTime <= 10) {
+          speedMultiplier = 2.0;
+        }
+
+        // Draw Floating EE Symbol Holograms
+        floatingHolograms.forEach(h => {
+          h.y += h.speedY;
+          if (h.y < -30) {
+            h.y = height + 30;
+            h.x = Math.random() * width;
+          }
+          ctx.font = `800 ${h.size}px 'Fira Code', monospace`;
+          ctx.fillStyle = h.color;
+          ctx.globalAlpha = h.opacity;
+          ctx.fillText(h.symbol, h.x, h.y);
+        });
+        ctx.globalAlpha = 1.0;
+
+        // Draw Electron Stream Traces
+        electrons.forEach(el => {
+          el.pulse += 0.05;
+          const currentSpeed = el.baseSpeed * speedMultiplier;
+
+          if (el.isHorizontal) {
+            el.x += currentSpeed * el.direction;
+            if (el.x > width + 50 || el.x < -50) Object.assign(el, createElectron());
+          } else {
+            el.y += currentSpeed * el.direction;
+            if (el.y > height + 50 || el.y < -50) Object.assign(el, createElectron());
+          }
+
+          const drawColor = isCritical ? "#FF2A8A" : el.color;
+
+          ctx.beginPath();
+          ctx.shadowBlur = isCritical ? 18 : 10;
+          ctx.shadowColor = drawColor;
+          ctx.strokeStyle = drawColor;
+          ctx.lineWidth = isCritical ? 2.5 : 1.8;
+
+          const tailX = el.isHorizontal ? el.x - (el.length * el.direction) : el.x;
+          const tailY = el.isHorizontal ? el.y : el.y - (el.length * el.direction);
+
+          const grad = ctx.createLinearGradient(tailX, tailY, el.x, el.y);
+          grad.addColorStop(0, "transparent");
+          grad.addColorStop(1, drawColor);
+          ctx.strokeStyle = grad;
+
+          ctx.moveTo(tailX, tailY);
+          ctx.lineTo(el.x, el.y);
+          ctx.stroke();
+
+          // Electron Lead Glow Point
+          ctx.beginPath();
+          ctx.fillStyle = "#FFFFFF";
+          ctx.arc(el.x, el.y, isCritical ? 3 : 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Glowing Junction Nodes
+          if (Math.abs(el.x % GRID_SIZE) < 3 && Math.abs(el.y % GRID_SIZE) < 3) {
+            ctx.beginPath();
+            ctx.fillStyle = drawColor;
+            ctx.arc(el.x, el.y, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+
+        ctx.shadowBlur = 0;
+        requestAnimationFrame(draw);
+      }
+
+      draw();
+    })();
+
+    // 2. LIVE OSCILLOSCOPE WAVEFORM ENGINE
+    (function initOscilloscope() {
+      const oscCanvas = document.getElementById("oscilloscope-canvas");
+      if (!oscCanvas) return;
+      const ctx = oscCanvas.getContext("2d");
+
+      let width = (oscCanvas.width = oscCanvas.offsetWidth || 200);
+      let height = (oscCanvas.height = oscCanvas.offsetHeight || 50);
+
+      window.addEventListener("resize", () => {
+        width = oscCanvas.width = oscCanvas.offsetWidth || 200;
+        height = oscCanvas.height = oscCanvas.offsetHeight || 50;
+      });
+
+      let step = 0;
+
+      function animateOscilloscope() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw Oscilloscope Background Grid Lines
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x < width; x += 15) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+
+        const remTime = gameState.timerRemaining || 30;
+        const freqTextElem = document.getElementById("osc-freq-text");
+
+        let frequency = 0.06;
+        let amplitude = height * 0.28;
+        let speed = 0.12;
+        let waveColor = "#00FF9D";
+        let jitter = 0;
+
+        if (remTime <= 5) {
+          frequency = 0.25;
+          amplitude = height * 0.42;
+          speed = 0.35;
+          waveColor = "#FF2A8A";
+          jitter = (Math.random() - 0.5) * 8;
+          if (freqTextElem) {
+            freqTextElem.innerText = "CRITICAL 400Hz HIGH SKEW";
+            freqTextElem.className = "text-fuse-pink font-bold animate-pulse";
+          }
+        } else if (remTime <= 10) {
+          frequency = 0.12;
+          amplitude = height * 0.35;
+          speed = 0.22;
+          waveColor = "#FFE600";
+          jitter = (Math.random() - 0.5) * 2;
+          if (freqTextElem) {
+            freqTextElem.innerText = "120Hz WARN STATE";
+            freqTextElem.className = "text-fuse-yellow font-bold";
+          }
+        } else {
+          if (freqTextElem) {
+            freqTextElem.innerText = "60Hz AC STABLE";
+            freqTextElem.className = "text-fuse-lime font-bold";
+          }
+        }
+
+        step += speed;
+
+        // Render Sine Waveform
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = waveColor;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = waveColor;
+
+        for (let x = 0; x < width; x++) {
+          const y = (height / 2) + Math.sin(x * frequency + step) * amplitude + (x === Math.floor(width/2) ? jitter : 0);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        requestAnimationFrame(animateOscilloscope);
+      }
+
+      animateOscilloscope();
+    })();
+
     window.onload = function() {
       lucide.createIcons();
       renderProjectorUI();
     };
-    function awardClincherFaci(points, rankLabel) {
-  if (!selectedTableId) {
-    showToast("NO TABLE ASSIGNED", "Please select your table first.", "rose", "alert-circle");
-    return;
-  }
-
-  const teamName = gameState.teams[selectedTableId]?.name || selectedTableId;
-
-  if (!confirm(`Award +${points} pts (${rankLabel} Clincher) to ${teamName}?`)) return;
-
-  if (isFirebaseConnected && db) {
-    db.ref(`quizState/teams/${selectedTableId}`).transaction(team => {
-      if (team) {
-        team.tiebreakerScore = (team.tiebreakerScore || 0) + points;
-        team.totalScore = (team.totalScore || 0) + points;
-      }
-      return team;
-    }, (err) => {
-      if (!err) {
-        showToast("CLINCHER AWARDED", `Added +${points} pts (${rankLabel}) to ${teamName}!`, "yellow", "trophy");
-      } else {
-        showToast("ERROR", err.message, "rose", "alert-circle");
-      }
-    });
-  }
-}
   </script>
 </body>
 </html>
