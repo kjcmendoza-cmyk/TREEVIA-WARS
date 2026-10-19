@@ -712,7 +712,6 @@ function updateWorkflowControlState() {
     // 5. INSTANT SCORE MATRIX LOGIC
     // ==========================================
 
-// Calculates podium placements and flags  teams competing for top ranks
 // Calculates podium placements and flags tied teams competing for top ranks
 function calculatePlacements(teams) {
   const placements = {};
@@ -798,8 +797,7 @@ function renderScoreMatrix() {
     let allow5 = false;
     let allow1 = false;
 
-    if (isStandingsOrPodium && isTied) {
-      if (higherTeamsCount === 0) {
+    if (higherTeamsCount === 0) {
         // Tied for 1st Place rank
         if (!has10) allow10 = true;
         else if (!has5) allow5 = true;
@@ -808,11 +806,10 @@ function renderScoreMatrix() {
         // Tied for 2nd Place rank
         if (!has5) allow5 = true;
         else if (!has1) allow1 = true;
-      } else if (higherTeamsCount >= 2) {
+      } else if (higherTeamsCount === 2) {
         // Tied for 3rd Place rank
         if (!has1) allow1 = true;
       }
-    }
 
     const placementLabel = placements[id] || "";
     const isTiebreakerNeeded = placementLabel === "(Tiebreaker)";
