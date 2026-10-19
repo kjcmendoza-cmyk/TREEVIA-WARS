@@ -771,19 +771,59 @@
         }
       });
     }
+// WEB AUDIO SYNTHESIZER ENGINE (NO EXTERNAL MP3 REQUIRED)
+// 1. SYNTHESIZER ENGINE (DEFINED FIRST)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    // CUSTOM SCI-FI TOAST NOTIFICATION ENGINE
-    function showToast(title, message, type = "yellow", iconName = "zap") {
-      const container = document.getElementById("toast-container");
-      if (!container) return;
+function playSciFiSound(type) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
 
-      const colorMap = {
-        yellow: { border: "border-fuse-yellow/70", bg: "bg-fuse-yellow/10", text: "text-fuse-yellow", glow: "glow-yellow" },
-        pink: { border: "border-fuse-pink/70", bg: "bg-fuse-pink/10", text: "text-fuse-pink", glow: "glow-pink" },
-        cyan: { border: "border-fuse-cyan/70", bg: "bg-fuse-cyan/10", text: "text-fuse-cyan", glow: "glow-cyan" },
-        lime: { border: "border-fuse-lime/70", bg: "bg-fuse-lime/10", text: "text-fuse-lime", glow: "glow-lime" },
-        rose: { border: "border-rose-500/70", bg: "bg-rose-500/10", text: "text-rose-400", glow: "" }
-      };
+  const now = audioCtx.currentTime;
+
+  if (type === 'tick') {
+    osc.frequency.setValueAtTime(800, now);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    osc.start(now);
+    osc.stop(now + 0.05);
+  } else if (type === 'powerup') {
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.25);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  } else if (type === 'alarm') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(900, now);
+    osc.frequency.linearRampToValueAtTime(400, now + 0.12);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  }
+}
+
+// 2. TOAST NOTIFICATION ENGINE (DEFINED SECOND)
+function showToast(title, message, type = "yellow", iconName = "zap") {
+  playSciFiSound('powerup'); // <--- Call sound here at top of toast function
+
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+
+  const colorMap = {
+    yellow: { border: "border-fuse-yellow/70", bg: "bg-fuse-yellow/10", text: "text-fuse-yellow", glow: "glow-yellow" },
+    pink: { border: "border-fuse-pink/70", bg: "bg-fuse-pink/10", text: "text-fuse-pink", glow: "glow-pink" },
+    cyan: { border: "border-fuse-cyan/70", bg: "bg-fuse-cyan/10", text: "text-fuse-cyan", glow: "glow-cyan" },
+    lime: { border: "border-fuse-lime/70", bg: "bg-fuse-lime/10", text: "text-fuse-lime", glow: "glow-lime" },
+    rose: { border: "border-rose-500/70", bg: "bg-rose-500/10", text: "text-rose-400", glow: "" }
+  };
+  // ... rest of your showToast code stays unchanged
 
       const theme = colorMap[type] || colorMap.yellow;
       const toastId = `toast-${Date.now()}`;
@@ -1015,6 +1055,7 @@
       ring.style.strokeDashoffset = strokeOffset;
 
       if (remaining <= 5) {
+        if (remaining > 0) playSciFiSound('alarm');
         ring.style.stroke = "#FF2A8A";
         display.style.color = "#FF2A8A";
         statusText.innerText = "CRITICAL WARNING";
@@ -1025,6 +1066,7 @@
         if (leftSpark) leftSpark.classList.remove("hidden");
         if (rightSpark) rightSpark.classList.remove("hidden");
       } else if (remaining <= 10) {
+        playSciFiSound('tick');
         ring.style.stroke = "#FFE600";
         display.style.color = "#FFE600";
         statusText.innerText = "REACTOR HEATING";
