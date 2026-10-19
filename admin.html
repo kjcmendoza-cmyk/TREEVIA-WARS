@@ -80,7 +80,12 @@
 
       <!-- Stage Navigator Bar -->
 <div class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-2">
-  <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Stage Navigator (Main Display Flow)</span>
+  <div class="flex justify-between items-center mb-1">
+    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Stage Navigator (Main Display Flow)</span>
+    <button onclick="restartLiveGame()" class="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition flex items-center gap-1">
+      🔄 Restart Live Match (Keep Setup)
+    </button>
+  </div>
   <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
     <button id="stage-btn-WELCOME" onclick="setStage('WELCOME')" class="py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center transition-all duration-200">
       1. Welcome Screen
@@ -1141,6 +1146,55 @@ function renderTeamsTable() {
       </td>
     `;
     tbody.appendChild(row);
+  });
+}
+
+// Restarts the live game state while keeping uploaded questions and team roster intact
+function restartLiveGame() {
+  if (!confirm("Are you sure you want to restart the live game? This will reset all team scores, active round, and stage back to 'WELCOME', but keep your uploaded Question Bank and Team Roster.")) return;
+
+  const teams = gameState.teams || {};
+  const resetTeams = {};
+
+  // Reset scores and sabotages for existing teams without removing their names/IDs
+  Object.keys(teams).forEach(id => {
+    resetTeams[id] = {
+      ...teams[id],
+      totalScore: 0,
+      roundScore: 0,
+      sabotagesReceived: 0
+    };
+  });
+
+  const bank = gameState.questionBank || [];
+  const firstQ = bank[0] || {};
+
+  const updates = {
+    "quizState/currentStage": "WELCOME",
+    "quizState/currentRound": Number(firstQ.round || 1),
+    "quizState/questionNumber": Number(firstQ.number || 1),
+    "quizState/activeQuestionIndex": 0,
+    "quizState/currentCategory": firstQ.category || "-",
+    "quizState/currentPoints": firstQ.points || 10,
+    "quizState/currentQuestionText": firstQ.text || "",
+    "quizState/currentAnswerText": firstQ.answer || "",
+    "quizState/currentImageUrl": firstQ.imageUrl || "",
+    "quizState/timerRemaining": 0,
+    "quizState/defaultTimerDuration": firstQ.timerDuration || 30,
+    "quizState/scoresLockedForActiveQ": false,
+    "quizState/pendingPowerUps": {},
+    "quizState/latestRoundLogs": [],
+    "quizState/lastScoreSnapshot": null,
+    "quizState/lastRoundResolutionSnapshot": null,
+    "quizState/teams": resetTeams
+  };
+
+  db.ref().update(updates, (err) => {
+    if (!err) {
+      alert("Live match restarted! All scores set to 0. Question Bank and Team Roster remain untouched.");
+    } else {
+      alert("Error restarting match: " + err.message);
+    }
   });
 }
 
