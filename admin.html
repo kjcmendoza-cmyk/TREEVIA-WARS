@@ -415,17 +415,31 @@ db.ref("quizState").on("value", (snapshot) => {
     function setStage(stageName) {
   const updates = { "quizState/currentStage": stageName };
 
-  // When moving from STANDINGS to ROUND_INTRO, automatically load the next round's first question
-  if (stageName === "ROUND_INTRO" && gameState.currentStage === "STANDINGS") {
+  if (stageName === "ROUND_INTRO") {
     const bank = gameState.questionBank || [];
-    const currentIdx = gameState.activeQuestionIndex ?? 0;
-    const nextIdx = currentIdx + 1;
+    const currentStage = gameState.currentStage || "WELCOME";
+    const currentRoundNum = Number(gameState.currentRound || 1);
 
-    if (nextIdx < bank.length) {
-      const q = bank[nextIdx];
-      updates["quizState/activeQuestionIndex"] = nextIdx;
-      updates["quizState/currentRound"] = q.round;
-      updates["quizState/questionNumber"] = q.number;
+    let targetQIdx = -1;
+
+    if (currentStage === "STANDINGS") {
+      // 1. MOVING TO NEXT ROUND: Find first question of Next Round (e.g., Round 1 -> Round 2)
+      targetQIdx = bank.findIndex(q => Number(q.round || 1) === currentRoundNum + 1);
+    } 
+    
+    // Fallback if starting fresh or if target round question wasn't found
+    if (targetQIdx === -1) {
+      const targetRound = currentStage === "WELCOME" ? 1 : currentRoundNum;
+      targetQIdx = bank.findIndex(q => Number(q.round || 1) === targetRound);
+      if (targetQIdx === -1 && bank.length > 0) targetQIdx = 0;
+    }
+
+    // Update active question and round data in Firebase
+    if (targetQIdx !== -1 && bank[targetQIdx]) {
+      const q = bank[targetQIdx];
+      updates["quizState/activeQuestionIndex"] = targetQIdx;
+      updates["quizState/currentRound"] = Number(q.round || 1);
+      updates["quizState/questionNumber"] = Number(q.number || 1);
       updates["quizState/currentCategory"] = q.category;
       updates["quizState/currentPoints"] = q.points;
       updates["quizState/currentQuestionText"] = q.text;
