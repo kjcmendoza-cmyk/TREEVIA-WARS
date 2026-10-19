@@ -202,7 +202,7 @@
                 </h3>
                 <p class="text-xs text-slate-400">Executes multipliers, resolves sabotages vs shields, and updates leaderboard.</p>
               </div>
-              <button onclick="evaluateAndEndRound()" class="px-5 py-2.5 bg-gradient-to-r from-brand-pink to-brand-purple hover:opacity-90 text-white font-black text-xs rounded-xl shadow-lg transition">
+              <button id="btn-resolve-round" onclick="evaluateAndEndRound()" class="px-5 py-2.5 bg-gradient-to-r from-brand-pink to-brand-purple hover:opacity-90 text-white font-black text-xs rounded-xl shadow-lg transition">
                 🚀 RESOLVE & END ROUND
               </button>
             </div>
@@ -413,8 +413,32 @@ db.ref("quizState").on("value", (snapshot) => {
     // 3. STAGE & QUESTION CONTROLS
     // ==========================================
     function setStage(stageName) {
-      db.ref("quizState/currentStage").set(stageName);
+  const updates = { "quizState/currentStage": stageName };
+
+  // When moving from STANDINGS to ROUND_INTRO, automatically load the next round's first question
+  if (stageName === "ROUND_INTRO" && gameState.currentStage === "STANDINGS") {
+    const bank = gameState.questionBank || [];
+    const currentIdx = gameState.activeQuestionIndex ?? 0;
+    const nextIdx = currentIdx + 1;
+
+    if (nextIdx < bank.length) {
+      const q = bank[nextIdx];
+      updates["quizState/activeQuestionIndex"] = nextIdx;
+      updates["quizState/currentRound"] = q.round;
+      updates["quizState/questionNumber"] = q.number;
+      updates["quizState/currentCategory"] = q.category;
+      updates["quizState/currentPoints"] = q.points;
+      updates["quizState/currentQuestionText"] = q.text;
+      updates["quizState/currentAnswerText"] = q.answer;
+      updates["quizState/currentImageUrl"] = q.imageUrl || "";
+      updates["quizState/timerRemaining"] = q.timerDuration || 30;
+      updates["quizState/defaultTimerDuration"] = q.timerDuration || 30;
+      updates["quizState/scoresLockedForActiveQ"] = false;
     }
+  }
+
+  db.ref().update(updates);
+}
 
     function renderQuestionDropdown() {
   const select = document.getElementById("active-question-select");
@@ -530,10 +554,13 @@ function updateWorkflowControlState() {
   const currentQ = bank[currentIdx];
   const nextQ = bank[currentIdx + 1];
 
-  // Check if current question is the last question of the active round
+  // Round tracking & last question check
+  const maxRoundInBank = bank.length > 0 ? Math.max(...bank.map(q => q.round || 1)) : 1;
+  const currentRound = currentQ ? (currentQ.round || 1) : 1;
   const isLastQuestionOfRound = currentQ && (!nextQ || (nextQ.round && nextQ.round > currentQ.round));
+  const isFinalRound = currentRound >= maxRoundInBank && isLastQuestionOfRound;
 
-  // Helper to toggle button disabled state & visual dimming
+  // Helper to toggle element interactive state & dimming
   function setElementState(id, enabled) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -545,27 +572,26 @@ function updateWorkflowControlState() {
     }
   }
 
-  // 1. STAGE NAVIGATOR LOCKS
+  // 1. STRICT STAGE NAVIGATOR LOCKS
   setElementState("stage-btn-WELCOME", stage === "WELCOME");
-  setElementState("stage-btn-ROUND_INTRO", true); // Always accessible
-  setElementState("stage-btn-QUESTION", stage === "WELCOME" || stage === "ROUND_INTRO" || stage === "QUESTION");
+  setElementState("stage-btn-ROUND_INTRO", stage === "WELCOME" || (stage === "STANDINGS" && !isFinalRound));
+  setElementState("stage-btn-QUESTION", stage === "ROUND_INTRO");
 
-  // Reveal Answer unlocks when live timer hits 0 / stops
   const canRevealAnswer = (stage === "QUESTION" && isTimerZero) || stage === "ANSWER_REVEAL";
   setElementState("stage-btn-ANSWER_REVEAL", canRevealAnswer);
 
-  // Standings unlocks once scores are locked
-  const canGoStandings = (stage === "ANSWER_REVEAL" && isScoresLocked) || stage === "STANDINGS";
-  setElementState("stage-btn-STANDINGS", canGoStandings);
-  setElementState("stage-btn-PODIUM", stage === "STANDINGS" || stage === "PODIUM");
+  setElementState("stage-btn-STANDINGS", stage === "STANDINGS");
 
-  // 2. TIMER CONSOLE LOCKS (Active only during QUESTION stage)
+  const canGoPodium = (stage === "STANDINGS" && isFinalRound) || stage === "PODIUM";
+  setElementState("stage-btn-PODIUM", canGoPodium);
+
+  // 2. LIVE TIMER CONSOLE LOCKS
   const timerControlsActive = stage === "QUESTION";
   setElementState("admin-btn-start-timer", timerControlsActive);
   setElementState("admin-btn-stop-timer", timerControlsActive);
   setElementState("admin-btn-reset-timer", timerControlsActive);
 
-  // 3. INSTANT SCORE MATRIX LOCKS (Active during ANSWER_REVEAL until locked)
+  // 3. INSTANT SCORE MATRIX & LOCKING
   const canGradeMatrix = stage === "ANSWER_REVEAL" && !isScoresLocked;
   setElementState("btn-lock-scores", canGradeMatrix);
 
@@ -579,19 +605,18 @@ function updateWorkflowControlState() {
     }
   });
 
-  // 4. QUESTION NAVIGATION LOCKS
-  let canAdvanceNextQ = (stage === "ANSWER_REVEAL" && isScoresLocked) || stage === "STANDINGS";
+  // 4. ROUND EVALUATOR ENGINE LOCKS
+  const canResolveRound = isLastQuestionOfRound && stage === "ANSWER_REVEAL" && isScoresLocked;
+  setElementState("btn-resolve-round", canResolveRound);
 
-  // GUARDRAIL: On the last question of a round, block 'Next Q' UNLESS 'RESOLVE & END ROUND' was clicked
-  if (isLastQuestionOfRound && stage !== "STANDINGS") {
-    canAdvanceNextQ = false;
-  }
+  // 5. QUESTION NAVIGATION LOCKS
+  const canAdvanceNextQ = stage === "ANSWER_REVEAL" && isScoresLocked && !isLastQuestionOfRound;
 
   setElementState("btn-next-q", canAdvanceNextQ);
-  setElementState("btn-prev-q", (stage === "ANSWER_REVEAL" && isScoresLocked) || stage === "STANDINGS");
+  setElementState("btn-prev-q", false);
   
   const selectElem = document.getElementById("active-question-select");
-  if (selectElem) selectElem.disabled = !canAdvanceNextQ;
+  if (selectElem) selectElem.disabled = true;
 }
 
     // ==========================================
