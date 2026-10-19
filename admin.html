@@ -764,63 +764,51 @@ function renderScoreMatrix() {
 
   const teams = gameState.teams || {};
   const stage = gameState.currentStage || "WELCOME";
-  const teamIds = Object.keys(teams);
+  const isStandingsOrPodium = (stage === "STANDINGS" || stage === "PODIUM");
 
-  // Check if we are at the final round standings or final podium stage (where Podium tab is allowed)
-  const bank = gameState.questionBank || [];
-  const currentIdx = gameState.activeQuestionIndex ?? 0;
-  const currentQ = bank[currentIdx];
-  const nextQ = bank[currentIdx + 1];
-  const maxRoundInBank = bank.length > 0 ? Math.max(...bank.map(q => q.round || 1)) : 1;
-  const currentRound = currentQ ? (currentQ.round || 1) : 1;
-  const isLastQuestionOfRound = currentQ && (!nextQ || (nextQ.round && nextQ.round > currentQ.round));
-  const isFinalRound = currentRound >= maxRoundInBank && isLastQuestionOfRound;
-
-  // Tiebreaker buttons (+10, +5, +1) are ONLY active when Podium tab is accessible
-  const isPodiumAllowed = (stage === "STANDINGS" && isFinalRound) || stage === "PODIUM";
-
-  // Count occurrences of each totalScore to detect ties
-  const scoreCounts = {};
-  teamIds.forEach(id => {
-    const score = teams[id].totalScore || 0;
-    scoreCounts[score] = (scoreCounts[score] || 0) + 1;
+  // Sort teams to evaluate active tie groups
+  const teamList = Object.keys(teams).map(id => ({ id, ...teams[id] }));
+  teamList.sort((a, b) => {
+    if ((b.totalScore || 0) !== (a.totalScore || 0)) {
+      return (b.totalScore || 0) - (a.totalScore || 0);
+    }
+    return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
   });
 
-  // Track globally awarded clincher points across all teams
-  const has10 = Object.values(teams).some(t => (t.tiebreakerScore || 0) >= 10);
-  const has5  = Object.values(teams).some(t => ((t.tiebreakerScore || 0) % 10) >= 5);
-  const has1  = Object.values(teams).some(t => ((t.tiebreakerScore || 0) % 5) >= 1);
+  // Identify active ties in Top 3
+  let tied1stScore = null;
+  let tied2ndScore = null;
+  let tied3rdScore = null;
 
-  // Compute live placements
+  if (teamList.length >= 2 && (teamList[0].totalScore || 0) === (teamList[1].totalScore || 0)) {
+    // Tie for 1st Place
+    tied1stScore = teamList[0].totalScore || 0;
+  } else if (teamList.length >= 3 && (teamList[1].totalScore || 0) === (teamList[2].totalScore || 0)) {
+    // 1st is unique; Tie for 2nd Place
+    tied2ndScore = teamList[1].totalScore || 0;
+  } else if (teamList.length >= 4 && (teamList[2].totalScore || 0) === (teamList[3].totalScore || 0)) {
+    // 1st & 2nd are unique; Tie for 3rd Place
+    tied3rdScore = teamList[2].totalScore || 0;
+  }
+
   const placements = calculatePlacements(teams);
 
-  teamIds.forEach(id => {
+  Object.keys(teams).forEach(id => {
     const team = teams[id];
     const teamScore = team.totalScore || 0;
-    const teamTiebreaker = team.tiebreakerScore || 0;
 
-    // Count teams with strictly higher totalScore to determine tie rank
-    const higherTeamsCount = Object.values(teams).filter(t => (t.totalScore || 0) > teamScore).length;
-
-    // Sequential clincher locking rule logic (+10 -> +5 -> +1)
     let allow10 = false;
     let allow5 = false;
     let allow1 = false;
 
-    // Activate buttons ONLY if Podium is accessible AND this specific team has NOT received a clincher yet (tiebreakerScore === 0)
-    if (isPodiumAllowed && teamTiebreaker === 0) {
-      if (higherTeamsCount === 0) {
-        // Tied for 1st Place (Grand Champion)
-        if (!has10) allow10 = true;
-        else if (!has5) allow5 = true;
-        else if (!has1) allow1 = true;
-      } else if (higherTeamsCount === 1) {
-        // Tied for 2nd Place
-        if (!has5) allow5 = true;
-        else if (!has1) allow1 = true;
-      } else if (higherTeamsCount === 2) {
-        // Tied for 3rd Place
-        if (!has1) allow1 = true;
+    // Enable buttons ONLY during Standings/Podium and ONLY for teams tied at that rank
+    if (isStandingsOrPodium) {
+      if (tied1stScore !== null && teamScore === tied1stScore) {
+        allow10 = true;
+      } else if (tied2ndScore !== null && teamScore === tied2ndScore) {
+        allow5 = true;
+      } else if (tied3rdScore !== null && teamScore === tied3rdScore) {
+        allow1 = true;
       }
     }
 
@@ -828,7 +816,6 @@ function renderScoreMatrix() {
     const isTiebreakerNeeded = placementLabel === "(Tiebreaker)";
 
     const row = document.createElement("tr");
-    
     row.innerHTML = `
       <td class="py-2.5 px-3">
         <input type="checkbox" id="chk-${id}" ${roundCheckedScores[id] ? 'checked' : ''} 
@@ -1391,6 +1378,119 @@ function seedDefaultData() {
       alert("Failed to reset database: " + err.message);
     }
   });
+}
+// Helper to verify if Top 3 placements are completely unique (no ties in ranks 1, 2, or 3)
+function checkIsTop3Established(teams) {
+  const teamList = Object.keys(teams || {}).map(id => ({ id, ...teams[id] }));
+  if (teamList.length <= 1) return true;
+
+  teamList.sort((a, b) => {
+    if ((b.totalScore || 0) !== (a.totalScore || 0)) {
+      return (b.totalScore || 0) - (a.totalScore || 0);
+    }
+    return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
+  });
+
+  // Check 1st Place uniqueness
+  const s0 = teamList[0].totalScore || 0;
+  const s1 = teamList[1].totalScore || 0;
+  if (s0 === s1) return false;
+
+  if (teamList.length <= 2) return true;
+
+  // Check 2nd Place uniqueness
+  const s2 = teamList[2].totalScore || 0;
+  if (s1 === s2) return false;
+
+  if (teamList.length <= 3) return true;
+
+  // Check 3rd Place uniqueness
+  const s3 = teamList[3].totalScore || 0;
+  if (s2 === s3) return false;
+
+  return true; // All top 3 positions are unique!
+}
+
+function updateWorkflowControlState() {
+  const stage = gameState.currentStage || "WELCOME";
+  const timerRemaining = gameState.timerRemaining || 0;
+  const isTimerZero = timerRemaining === 0;
+  const isScoresLocked = gameState.scoresLockedForActiveQ || false;
+
+  const bank = gameState.questionBank || [];
+  const currentIdx = gameState.activeQuestionIndex ?? 0;
+  const currentQ = bank[currentIdx];
+  const nextQ = bank[currentIdx + 1];
+
+  const maxRoundInBank = bank.length > 0 ? Math.max(...bank.map(q => q.round || 1)) : 1;
+  const currentRound = currentQ ? (currentQ.round || 1) : 1;
+  const isLastQuestionOfRound = currentQ && (!nextQ || (nextQ.round && nextQ.round > currentQ.round));
+  const isFinalRound = currentRound >= maxRoundInBank && isLastQuestionOfRound;
+
+  function setElementState(id, enabled) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !enabled;
+    if (enabled) {
+      el.classList.remove("opacity-30", "cursor-not-allowed", "pointer-events-none");
+    } else {
+      el.classList.add("opacity-30", "cursor-not-allowed", "pointer-events-none");
+    }
+  }
+
+  // 1. STRICT STAGE NAVIGATOR LOCKS
+  setElementState("stage-btn-WELCOME", stage === "WELCOME");
+  setElementState("stage-btn-ROUND_INTRO", stage === "WELCOME" || stage === "ROUND_INTRO" || (stage === "STANDINGS" && !isFinalRound));
+  setElementState("stage-btn-QUESTION", stage === "ROUND_INTRO" || stage === "QUESTION");
+
+  const canRevealAnswer = (stage === "QUESTION" && isTimerZero) || stage === "ANSWER_REVEAL";
+  setElementState("stage-btn-ANSWER_REVEAL", canRevealAnswer);
+
+  setElementState("stage-btn-STANDINGS", stage === "STANDINGS");
+
+  // UNLOCK PODIUM: Require Standings stage (or Podium) AND top 3 places fully established (no ties)
+  const isTop3Established = checkIsTop3Established(gameState.teams);
+  const canGoPodium = ((stage === "STANDINGS" && isFinalRound) || stage === "PODIUM") && isTop3Established;
+  setElementState("stage-btn-PODIUM", canGoPodium);
+
+  // 2. LIVE TIMER CONSOLE LOCKS
+  const timerControlsActive = stage === "QUESTION";
+  setElementState("admin-btn-start-timer", timerControlsActive);
+  setElementState("admin-btn-stop-timer", timerControlsActive);
+  setElementState("admin-btn-reset-timer", timerControlsActive);
+
+  // 3. INSTANT SCORE MATRIX & LOCKING
+  const canGradeMatrix = stage === "ANSWER_REVEAL" && !isScoresLocked;
+  setElementState("btn-lock-scores", canGradeMatrix);
+  setElementState("btn-unlock-scores", isScoresLocked && stage === "ANSWER_REVEAL");
+
+  const checkboxes = document.querySelectorAll('#score-matrix-body input[type="checkbox"]');
+  checkboxes.forEach(chk => {
+    chk.disabled = !canGradeMatrix;
+    if (canGradeMatrix) {
+      chk.classList.remove("opacity-30", "cursor-not-allowed");
+    } else {
+      chk.classList.add("opacity-30", "cursor-not-allowed");
+    }
+  });
+
+  // 4. ROUND EVALUATOR ENGINE LOCKS
+  const canResolveRound = isLastQuestionOfRound && stage === "ANSWER_REVEAL" && isScoresLocked;
+  setElementState("btn-resolve-round", canResolveRound);
+  setElementState("btn-undo-round", stage === "STANDINGS");
+
+  // 5. QUESTION NAVIGATION LOCKS
+  const canAdvanceNextQ = stage === "ANSWER_REVEAL" && isScoresLocked && !isLastQuestionOfRound;
+  const canAdvancePrevQ = currentIdx > 0 && (stage === "WELCOME" || stage === "ROUND_INTRO" || (stage === "ANSWER_REVEAL" && isScoresLocked));
+
+  setElementState("btn-next-q", canAdvanceNextQ);
+  setElementState("btn-prev-q", canAdvancePrevQ);
+  
+  const selectElem = document.getElementById("active-question-select");
+  if (selectElem) {
+    const canSelectQ = stage === "WELCOME" || stage === "ROUND_INTRO" || (stage === "ANSWER_REVEAL" && isScoresLocked);
+    selectElem.disabled = !canSelectQ;
+  }
 }
   </script>
 </body>
