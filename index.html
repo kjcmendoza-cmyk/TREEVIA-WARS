@@ -259,10 +259,14 @@
       </div>
     </div>
 
-    <div class="flex items-center space-x-3">
+   <div class="flex items-center space-x-3">
       <span id="connection-status" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-fuse-lime/10 text-fuse-lime border border-fuse-lime/40 shadow-sm glow-lime">
         <span class="w-2 h-2 rounded-full bg-fuse-lime mr-2 animate-ping"></span> Live Synced
       </span>
+      <button id="bgm-toggle-btn" onclick="toggleBgm()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-fuse-purple/20 hover:bg-fuse-purple/40 text-fuse-lime border border-fuse-lime/40 transition flex items-center space-x-1.5 shadow-md">
+        <i data-lucide="disc" class="w-3.5 h-3.5 text-fuse-lime animate-spin-slow"></i> 
+        <span id="bgm-btn-text">BGM Active</span>
+      </button>
       <button onclick="toggleMechanicsModal(true)" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5 shadow-md">
         <i data-lucide="book-open" class="w-3.5 h-3.5 text-fuse-cyan"></i> <span>Mechanics</span>
       </button>
@@ -941,6 +945,114 @@ function playSciFiSound(type) {
       osc.start(startTime);
       osc.stop(startTime + 0.4);
     });
+  }
+}
+
+// =========================================================================
+// DYNAMIC PROCEDURAL SYNTH BGM ENGINE (ZERO EXTERNAL MP3 REQUIRED)
+// =========================================================================
+let isBgmMuted = false;
+let bgmTimer = null;
+let bgmStep = 0;
+
+// Sci-Fi Pentatonic Ambient Progression (E Minor Matrix)
+const bgmNotes = [
+  164.81, 196.00, 246.94, 329.63, // E3, G3, B3, E4
+  164.81, 220.00, 246.94, 293.66, // E3, A3, B3, D4
+  130.81, 164.81, 196.00, 246.94, // C3, E3, G3, B3
+  146.83, 196.00, 220.00, 293.66  // D3, G3, A3, D4
+];
+
+function playBgmPulse() {
+  if (isBgmMuted || !window.AudioContext) return;
+  if (audioCtx.state === 'suspended') return;
+
+  const stage = gameState.currentStage || "WELCOME";
+  if (stage === "ANSWER_REVEAL" || stage === "PODIUM") return;
+
+  const now = audioCtx.currentTime;
+  const freq = bgmNotes[bgmStep % bgmNotes.length];
+  bgmStep++;
+
+  const remTime = gameState.timerRemaining || 30;
+  let gainVal = 0.035; // Gentle baseline ambient volume
+  let duration = 0.18;
+  let waveType = 'sine';
+  let filterCutoff = 650;
+
+  if (stage === "QUESTION") {
+    if (remTime <= 5) {
+      gainVal = 0.07;
+      waveType = 'sawtooth';
+      duration = 0.09;
+      filterCutoff = 1800; // Open filter for sharp tension
+    } else if (remTime <= 10) {
+      gainVal = 0.05;
+      waveType = 'triangle';
+      duration = 0.14;
+      filterCutoff = 1100;
+    }
+  }
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(filterCutoff, now);
+
+  osc.type = waveType;
+  osc.frequency.setValueAtTime(freq, now);
+
+  gain.gain.setValueAtTime(gainVal, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(now);
+  osc.stop(now + duration);
+}
+
+function startBgmScheduler() {
+  if (bgmTimer) clearTimeout(bgmTimer);
+
+  function scheduleNextBeat() {
+    playBgmPulse();
+
+    const stage = gameState.currentStage || "WELCOME";
+    let nextInterval = 320; // Base 93 BPM ambient tempo
+
+    if (stage === "QUESTION") {
+      const remTime = gameState.timerRemaining || 30;
+      if (remTime <= 5) {
+        nextInterval = 130; // Rapid ~230 BPM critical sprint
+      } else if (remTime <= 10) {
+        nextInterval = 210; // ~140 BPM warning speed
+      }
+    }
+
+    bgmTimer = setTimeout(scheduleNextBeat, nextInterval);
+  }
+
+  scheduleNextBeat();
+}
+
+function toggleBgm() {
+  isBgmMuted = !isBgmMuted;
+  const btn = document.getElementById("bgm-toggle-btn");
+  const label = document.getElementById("bgm-btn-text");
+
+  if (isBgmMuted) {
+    if (btn) btn.classList.add("opacity-50");
+    if (label) label.innerText = "BGM Muted";
+    showToast("AUDIO MUTED", "Background music paused.", "yellow", "volume-x", null);
+  } else {
+    if (btn) btn.classList.remove("opacity-50");
+    if (label) label.innerText = "BGM Active";
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    showToast("AUDIO ACTIVE", "Procedural synth music pulse online.", "lime", "disc", "round_intro");
   }
 }
 
@@ -1752,9 +1864,19 @@ function awardClincherFaci(points, rankLabel) {
     })();
 
     window.onload = function() {
-      lucide.createIcons();
-      renderProjectorUI();
-    };
+  lucide.createIcons();
+  renderProjectorUI();
+  
+  // Start dynamic BGM pulse loop
+  startBgmScheduler();
+
+  // Auto-resume audio context on first user click
+  document.body.addEventListener('click', () => {
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }, { once: true });
+};
   </script>
 </body>
 </html>
