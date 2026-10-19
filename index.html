@@ -412,31 +412,34 @@
       </div>
 
       <div class="grid grid-cols-3 gap-4 items-end pt-8 max-w-3xl mx-auto">
+        <!-- 2nd Place Slot -->
         <div class="glass-panel p-6 rounded-t-3xl border border-fuse-border flex flex-col items-center h-64 justify-between order-1 bg-gradient-to-b from-slate-800/40 to-transparent">
           <span class="text-4xl glow-cyan">🥈</span>
           <div>
             <h4 id="podium-2nd-name" class="font-bold text-slate-100 text-lg">Table 2</h4>
             <p id="podium-2nd-score" class="text-2xl font-black text-fuse-cyan font-mono">0 Pts</p>
           </div>
-          <span class="text-xs font-black font-mono uppercase tracking-widest text-slate-400">2nd Place</span>
+          <span id="podium-2nd-label" class="text-xs font-black font-mono uppercase tracking-widest text-slate-400">2nd Place</span>
         </div>
 
+        <!-- 1st Place Slot -->
         <div class="glass-panel p-6 rounded-t-3xl border-2 border-fuse-yellow/70 bg-gradient-to-b from-fuse-yellow/25 via-fuse-dark/90 to-fuse-dark flex flex-col items-center h-80 justify-between order-2 shadow-2xl shadow-fuse-yellow/30 glow-yellow">
           <span class="text-6xl animate-bounce">🏆</span>
           <div>
             <h4 id="podium-1st-name" class="font-black text-2xl text-fuse-yellow font-display">Table 1</h4>
             <p id="podium-1st-score" class="text-4xl font-black text-white font-mono">0 Pts</p>
           </div>
-          <span class="text-xs font-black font-mono uppercase tracking-widest text-fuse-yellow px-3 py-1 rounded-full bg-fuse-yellow/20 border border-fuse-yellow/50">Grand Champion</span>
+          <span id="podium-1st-label" class="text-xs font-black font-mono uppercase tracking-widest text-fuse-yellow px-3 py-1 rounded-full bg-fuse-yellow/20 border border-fuse-yellow/50">Grand Champion</span>
         </div>
 
+        <!-- 3rd Place Slot -->
         <div class="glass-panel p-6 rounded-t-3xl border border-fuse-border flex flex-col items-center h-52 justify-between order-3 bg-gradient-to-b from-slate-800/30 to-transparent">
           <span class="text-4xl glow-pink">🥉</span>
           <div>
             <h4 id="podium-3rd-name" class="font-bold text-slate-100 text-lg">Table 3</h4>
             <p id="podium-3rd-score" class="text-2xl font-black text-fuse-pink font-mono">0 Pts</p>
           </div>
-          <span class="text-xs font-black font-mono uppercase tracking-widest text-slate-400">3rd Place</span>
+          <span id="podium-3rd-label" class="text-xs font-black font-mono uppercase tracking-widest text-slate-400">3rd Place</span>
         </div>
       </div>
     </section>
@@ -1035,25 +1038,88 @@
   const sorted = Object.keys(teams)
     .map(id => ({ id, ...teams[id] }))
     .sort((a, b) => {
-      // 1. Primary: Compare totalScore
       if ((b.totalScore || 0) !== (a.totalScore || 0)) {
         return (b.totalScore || 0) - (a.totalScore || 0);
       }
-      // 2. Secondary: Compare tiebreakerScore if totalScore is equal
       return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
     });
 
+  // Group team IDs by totalScore to detect tied podium spots
+  const scoreGroups = {};
+  sorted.forEach(t => {
+    const score = t.totalScore || 0;
+    if (!scoreGroups[score]) scoreGroups[score] = [];
+    scoreGroups[score].push(t.id);
+  });
+
+  const sortedScores = Object.keys(scoreGroups).map(Number).sort((a, b) => b - a);
+
+  const placements = {};
+  let currentRank = 1;
+
+  sortedScores.forEach(score => {
+    const group = scoreGroups[score];
+    const groupSize = group.length;
+
+    if (groupSize > 1) {
+      group.forEach(id => {
+        if (currentRank <= 3) {
+          placements[id] = "(Tiebreaker)";
+        } else {
+          placements[id] = `${currentRank}th Place`;
+        }
+      });
+    } else {
+      const id = group[0];
+      if (currentRank === 1) placements[id] = "Grand Champion";
+      else if (currentRank === 2) placements[id] = "2nd Place";
+      else if (currentRank === 3) placements[id] = "3rd Place";
+      else placements[id] = `${currentRank}th Place`;
+    }
+
+    currentRank += groupSize;
+  });
+
+  // 1st Place Slot
   if (sorted[0]) {
+    const label1 = placements[sorted[0].id] || "Grand Champion";
     document.getElementById("podium-1st-name").innerText = sorted[0].name;
     document.getElementById("podium-1st-score").innerText = `${sorted[0].totalScore || 0} Pts`;
+    const elem1 = document.getElementById("podium-1st-label");
+    if (elem1) {
+      elem1.innerText = label1;
+      elem1.className = label1 === "(Tiebreaker)" 
+        ? "text-xs font-black font-mono uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 animate-pulse"
+        : "text-xs font-black font-mono uppercase tracking-widest text-fuse-yellow px-3 py-1 rounded-full bg-fuse-yellow/20 border border-fuse-yellow/50";
+    }
   }
+
+  // 2nd Place Slot
   if (sorted[1]) {
+    const label2 = placements[sorted[1].id] || "2nd Place";
     document.getElementById("podium-2nd-name").innerText = sorted[1].name;
     document.getElementById("podium-2nd-score").innerText = `${sorted[1].totalScore || 0} Pts`;
+    const elem2 = document.getElementById("podium-2nd-label");
+    if (elem2) {
+      elem2.innerText = label2;
+      elem2.className = label2 === "(Tiebreaker)" 
+        ? "text-xs font-black font-mono uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 animate-pulse"
+        : "text-xs font-black font-mono uppercase tracking-widest text-slate-400";
+    }
   }
+
+  // 3rd Place Slot
   if (sorted[2]) {
+    const label3 = placements[sorted[2].id] || "3rd Place";
     document.getElementById("podium-3rd-name").innerText = sorted[2].name;
     document.getElementById("podium-3rd-score").innerText = `${sorted[2].totalScore || 0} Pts`;
+    const elem3 = document.getElementById("podium-3rd-label");
+    if (elem3) {
+      elem3.innerText = label3;
+      elem3.className = label3 === "(Tiebreaker)" 
+        ? "text-xs font-black font-mono uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/50 animate-pulse"
+        : "text-xs font-black font-mono uppercase tracking-widest text-slate-400";
+    }
   }
 }
 
