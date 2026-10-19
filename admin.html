@@ -194,6 +194,7 @@
                     <th class="py-2 px-3">Table Name</th>
                     <th class="py-2 px-3 text-right">Base Pts This Round</th>
                     <th class="py-2 px-3 text-right">Sabotages Recv</th>
+                    <th class="py-2 px-3 text-right">Tiebreaker</th>
                   </tr>
                 </thead>
                 <tbody id="score-matrix-body" class="divide-y divide-slate-800/60 text-sm">
@@ -721,11 +722,19 @@ function updateWorkflowControlState() {
     
     row.innerHTML = `
       <td class="py-2.5 px-3">
-        <input type="checkbox" id="chk-${id}" ${roundCheckedScores[id] ? 'checked' : ''} onchange="roundCheckedScores['${id}'] = this.checked" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-purple focus:ring-brand-purple" />
+        <input type="checkbox" id="chk-${id}" ${roundCheckedScores[id] ? 'checked' : ''} 
+          onchange="roundCheckedScores['${id}'] = this.checked" 
+          onclick="roundCheckedScores['${id}'] = this.checked" 
+          class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-purple focus:ring-brand-purple" />
       </td>
       <td class="py-2.5 px-3 font-semibold text-white">${team.name}</td>
       <td class="py-2.5 px-3 text-right font-mono text-slate-300">${team.roundScore || 0} Pts</td>
       <td class="py-2.5 px-3 text-right font-mono text-rose-400 font-bold">${team.sabotagesReceived || 0}/3</td>
+      <td class="py-2.5 px-3 text-right">
+        <button onclick="addTiebreakerPoint('${id}')" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition">
+          +1 Clincher (${team.tiebreakerScore || 0})
+        </button>
+      </td>
     `;
     tbody.appendChild(row);
   });
@@ -741,7 +750,8 @@ function updateWorkflowControlState() {
 
   Object.keys(teams).forEach(id => {
     const chk = document.getElementById(`chk-${id}`);
-    const isChecked = chk ? chk.checked : !!roundCheckedScores[id];
+    // Evaluates true if EITHER the DOM checkbox OR memory state is checked
+    const isChecked = (chk && chk.checked) || !!roundCheckedScores[id];
     if (isChecked) {
       const currentRoundScore = teams[id].roundScore || 0;
       updates[`quizState/teams/${id}/roundScore`] = currentRoundScore + points;
@@ -779,6 +789,19 @@ function undoScoreLock() {
     }, (err) => {
       if (!err) alert("Scores unlocked and reverted!");
     });
+  });
+}
+// Helper to award +1 Tiebreaker point during sudden-death rounds
+function addTiebreakerPoint(teamId) {
+  const teamName = gameState.teams?.[teamId]?.name || "this team";
+  if (!confirm(`Award +1 Clincher Tiebreaker Point to ${teamName}?`)) return;
+
+  db.ref(`quizState/teams/${teamId}/tiebreakerScore`).transaction(val => (val || 0) + 1, (err) => {
+    if (!err) {
+      alert(`Added +1 Clincher point to ${teamName}!`);
+    } else {
+      alert("Error adding tiebreaker point: " + err.message);
+    }
   });
 }
 
@@ -1164,7 +1187,8 @@ function restartLiveGame() {
       ...teams[id],
       totalScore: 0,
       roundScore: 0,
-      sabotagesReceived: 0
+      sabotagesReceived: 0,
+      tiebreakerScore: 0 // <-- ADD THIS LINE
     };
   });
 

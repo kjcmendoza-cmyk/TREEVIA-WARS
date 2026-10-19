@@ -970,8 +970,15 @@
       
       const teams = gameState.teams || {};
       const sortedTeams = Object.keys(teams)
-        .map(id => ({ id, ...teams[id] }))
-        .sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+  .map(id => ({ id, ...teams[id] }))
+  .sort((a, b) => {
+    // 1. Primary: Compare totalScore
+    if ((b.totalScore || 0) !== (a.totalScore || 0)) {
+      return (b.totalScore || 0) - (a.totalScore || 0);
+    }
+    // 2. Secondary: Compare tiebreakerScore if totalScore is equal
+    return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
+  });
 
       sortedTeams.forEach((team, index) => {
         const row = document.createElement("tr");
@@ -997,24 +1004,31 @@
     }
 
     function renderPodium() {
-      const teams = gameState.teams || {};
-      const sorted = Object.keys(teams)
-        .map(id => ({ id, ...teams[id] }))
-        .sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+  const teams = gameState.teams || {};
+  const sorted = Object.keys(teams)
+    .map(id => ({ id, ...teams[id] }))
+    .sort((a, b) => {
+      // 1. Primary: Compare totalScore
+      if ((b.totalScore || 0) !== (a.totalScore || 0)) {
+        return (b.totalScore || 0) - (a.totalScore || 0);
+      }
+      // 2. Secondary: Compare tiebreakerScore if totalScore is equal
+      return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
+    });
 
-      if (sorted[0]) {
-        document.getElementById("podium-1st-name").innerText = sorted[0].name;
-        document.getElementById("podium-1st-score").innerText = `${sorted[0].totalScore || 0} Pts`;
-      }
-      if (sorted[1]) {
-        document.getElementById("podium-2nd-name").innerText = sorted[1].name;
-        document.getElementById("podium-2nd-score").innerText = `${sorted[1].totalScore || 0} Pts`;
-      }
-      if (sorted[2]) {
-        document.getElementById("podium-3rd-name").innerText = sorted[2].name;
-        document.getElementById("podium-3rd-score").innerText = `${sorted[2].totalScore || 0} Pts`;
-      }
-    }
+  if (sorted[0]) {
+    document.getElementById("podium-1st-name").innerText = sorted[0].name;
+    document.getElementById("podium-1st-score").innerText = `${sorted[0].totalScore || 0} Pts`;
+  }
+  if (sorted[1]) {
+    document.getElementById("podium-2nd-name").innerText = sorted[1].name;
+    document.getElementById("podium-2nd-score").innerText = `${sorted[1].totalScore || 0} Pts`;
+  }
+  if (sorted[2]) {
+    document.getElementById("podium-3rd-name").innerText = sorted[2].name;
+    document.getElementById("podium-3rd-score").innerText = `${sorted[2].totalScore || 0} Pts`;
+  }
+}
 
     function openFaciLoginModal() {
       document.getElementById("faci-login-modal").classList.remove("hidden");
