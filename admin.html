@@ -764,7 +764,15 @@ function renderScoreMatrix() {
 
   const teams = gameState.teams || {};
   const stage = gameState.currentStage || "WELCOME";
-  const isStandingsOrPodium = (stage === "STANDINGS" || stage === "PODIUM");
+
+  // Check if we are in the Final Round
+  const bank = gameState.questionBank || [];
+  const maxRoundInBank = bank.length > 0 ? Math.max(...bank.map(q => Number(q.round || 1))) : 1;
+  const currentRound = Number(gameState.currentRound || 1);
+  const isFinalRound = currentRound >= maxRoundInBank;
+
+  // Clincher buttons are enabled ONLY during Final Round STANDINGS or PODIUM stages
+  const isFinalStandingsOrPodium = (stage === "STANDINGS" && isFinalRound) || stage === "PODIUM";
 
   // Sort teams to evaluate active tie groups
   const teamList = Object.keys(teams).map(id => ({ id, ...teams[id] }));
@@ -801,8 +809,8 @@ function renderScoreMatrix() {
     let allow5 = false;
     let allow1 = false;
 
-    // Enable buttons ONLY during Standings/Podium and ONLY for teams tied at that rank
-    if (isStandingsOrPodium) {
+    // Enable buttons ONLY during Final Round Standings/Podium AND ONLY for teams tied at that rank
+    if (isFinalStandingsOrPodium) {
       if (tied1stScore !== null && teamScore === tied1stScore) {
         allow10 = true;
       } else if (tied2ndScore !== null && teamScore === tied2ndScore) {
