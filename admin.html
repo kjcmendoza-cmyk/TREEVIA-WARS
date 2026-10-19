@@ -259,33 +259,54 @@
 </div>
         <!-- 1. Question Bank Setup -->
         <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
-          <h3 class="font-bold text-sm uppercase tracking-wider text-brand-purple">Add / Edit Question</h3>
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 id="form-title" class="font-bold text-sm uppercase tracking-wider text-brand-purple flex items-center gap-2">
+                <span>➕ Add Question</span>
+                <span id="form-mode-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">New Entry</span>
+              </h3>
+            </div>
+            <button id="btn-cancel-edit" type="button" onclick="cancelEdit()" class="hidden px-2.5 py-1 text-xs font-bold text-slate-400 hover:text-white bg-slate-800 rounded-lg border border-slate-700 transition">
+              ✕ Cancel Edit
+            </button>
+          </div>
+
+          <!-- Quick Round Selector Badges -->
+          <div>
+            <label class="text-[11px] text-slate-400 font-semibold block mb-1.5">Quick Round Jump</label>
+            <div id="quick-round-pills" class="flex flex-wrap gap-1.5">
+              <!-- Dynamically rendered pills -->
+            </div>
+          </div>
           
           <form id="question-form" onsubmit="saveQuestion(event)" class="space-y-3">
+            <!-- Hidden input to track edit mode index -->
+            <input type="hidden" id="cfg-q-edit-index" value="-1" />
+
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="text-xs text-slate-400 block mb-1">Round Number</label>
-                <input type="number" id="cfg-q-round" min="1" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+                <input type="number" id="cfg-q-round" min="1" value="1" oninput="autoSetQuestionNumber()" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:ring-1 focus:ring-brand-purple outline-none" />
               </div>
               <div>
                 <label class="text-xs text-slate-400 block mb-1">Question Number</label>
-                <input type="number" id="cfg-q-num" min="1" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+                <input type="number" id="cfg-q-num" min="1" value="1" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:ring-1 focus:ring-brand-purple outline-none" />
               </div>
             </div>
 
             <div>
               <label class="text-xs text-slate-400 block mb-1">Category Title</label>
-              <input type="text" id="cfg-q-cat" placeholder="e.g., Circuit Theory" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+              <input type="text" id="cfg-q-cat" placeholder="e.g., Circuit Theory" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:ring-1 focus:ring-brand-purple outline-none" />
             </div>
 
             <div>
               <label class="text-xs text-slate-400 block mb-1">Question Text</label>
-              <textarea id="cfg-q-text" rows="3" required placeholder="Enter prompt text here..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea>
+              <textarea id="cfg-q-text" rows="3" required placeholder="Enter prompt text here..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:ring-1 focus:ring-brand-purple outline-none"></textarea>
             </div>
 
             <div>
               <label class="text-xs text-slate-400 block mb-1">Correct Answer Text</label>
-              <input type="text" id="cfg-q-ans" placeholder="e.g., 220 Volts" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+              <input type="text" id="cfg-q-ans" placeholder="e.g., 220 Volts" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:ring-1 focus:ring-brand-purple outline-none" />
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -304,7 +325,7 @@
               <input type="url" id="cfg-q-img" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
             </div>
 
-            <button type="submit" class="w-full py-2.5 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs transition">
+            <button id="cfg-q-submit-btn" type="submit" class="w-full py-2.5 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs transition shadow-md">
               ➕ Save Question to Database
             </button>
           </form>
@@ -389,6 +410,7 @@ db.ref("quizState").on("value", (snapshot) => {
   renderScoreMatrix();
   renderTeamsTable();
   renderQuestionBankTable();
+  autoSetQuestionNumber();
 
   // ADD THIS LINE HERE:
   updateWorkflowControlState(); 
@@ -798,148 +820,213 @@ function updateWorkflowControlState() {
     // ==========================================
     // 7. SETUP & CONFIGURATION ENGINE
     // ==========================================
+
+    // Auto-calculates the next question number and populates round category memory
+    function autoSetQuestionNumber() {
+      const editIdx = parseInt(document.getElementById("cfg-q-edit-index").value);
+      if (editIdx >= 0) return; // Skip auto-calculation when editing an existing item
+
+      const selectedRound = parseInt(document.getElementById("cfg-q-round").value) || 1;
+      const bank = gameState.questionBank || [];
+
+      // Find all questions belonging to the selected round
+      const roundQuestions = bank.filter(q => (q.round || 1) === selectedRound);
+
+      if (roundQuestions.length > 0) {
+        // Calculate next question number
+        const maxQNum = Math.max(...roundQuestions.map(q => q.number || 0));
+        document.getElementById("cfg-q-num").value = maxQNum + 1;
+
+        // Auto-fill category if available and field is untouched
+        const lastCat = roundQuestions[roundQuestions.length - 1].category;
+        if (lastCat && !document.getElementById("cfg-q-cat").value) {
+          document.getElementById("cfg-q-cat").value = lastCat;
+        }
+      } else {
+        document.getElementById("cfg-q-num").value = 1;
+      }
+
+      renderQuickRoundPills();
+    }
+
+    // Render quick-jump round buttons
+    function renderQuickRoundPills() {
+      const pillContainer = document.getElementById("quick-round-pills");
+      if (!pillContainer) return;
+      pillContainer.innerHTML = "";
+
+      const bank = gameState.questionBank || [];
+      const currentSelectedRound = parseInt(document.getElementById("cfg-q-round").value) || 1;
+
+      // Extract unique round numbers present in the bank plus current round
+      const rounds = [...new Set([...bank.map(q => q.round || 1), 1, currentSelectedRound])].sort((a, b) => a - b);
+
+      rounds.forEach(r => {
+        const isSelected = r === currentSelectedRound;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.onclick = () => selectRoundPill(r);
+        btn.className = `px-2.5 py-1 text-[11px] font-bold rounded-lg border transition ${
+          isSelected 
+            ? 'bg-brand-purple text-white border-brand-purple shadow-sm' 
+            : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700'
+        }`;
+        btn.innerText = `R${r}`;
+        pillContainer.appendChild(btn);
+      });
+
+      // Add Next Round quick-creator button
+      const maxExistingRound = bank.length > 0 ? Math.max(...bank.map(q => q.round || 1)) : 1;
+      const nextNewRound = maxExistingRound + 1;
+
+      const newRoundBtn = document.createElement("button");
+      newRoundBtn.type = "button";
+      newRoundBtn.onclick = () => selectRoundPill(nextNewRound);
+      newRoundBtn.className = "px-2 py-1 text-[11px] font-bold rounded-lg border border-dashed border-brand-pink/50 text-brand-pink hover:bg-brand-pink/10 transition";
+      newRoundBtn.innerText = `+ R${nextNewRound}`;
+      pillContainer.appendChild(newRoundBtn);
+    }
+
+    function selectRoundPill(roundNum) {
+      document.getElementById("cfg-q-round").value = roundNum;
+      document.getElementById("cfg-q-cat").value = ""; // Reset category for a clean slate on round jump
+      autoSetQuestionNumber();
+    }
+
     function saveQuestion(e) {
       e.preventDefault();
+
+      const editIdx = parseInt(document.getElementById("cfg-q-edit-index").value);
+      const roundVal = parseInt(document.getElementById("cfg-q-round").value);
+      const catVal = document.getElementById("cfg-q-cat").value;
+      const ptsVal = parseInt(document.getElementById("cfg-q-pts").value);
+      const timerVal = parseInt(document.getElementById("cfg-q-timer").value);
+
       const newQ = {
-        round: parseInt(document.getElementById("cfg-q-round").value),
+        round: roundVal,
         number: parseInt(document.getElementById("cfg-q-num").value),
-        category: document.getElementById("cfg-q-cat").value,
+        category: catVal,
         text: document.getElementById("cfg-q-text").value,
         answer: document.getElementById("cfg-q-ans").value,
-        points: parseInt(document.getElementById("cfg-q-pts").value),
-        timerDuration: parseInt(document.getElementById("cfg-q-timer").value),
+        points: ptsVal,
+        timerDuration: timerVal,
         imageUrl: document.getElementById("cfg-q-img").value
       };
 
       const bank = gameState.questionBank || [];
-      bank.push(newQ);
-      
+
+      if (editIdx >= 0 && editIdx < bank.length) {
+        // Update existing question
+        bank[editIdx] = newQ;
+      } else {
+        // Add new question
+        bank.push(newQ);
+      }
+
       db.ref("quizState/questionBank").set(bank, () => {
-        alert("Question added successfully!");
-        document.getElementById("question-form").reset();
+        // Preserve Round, Category, Points, and Timer settings after save
+        document.getElementById("cfg-q-text").value = "";
+        document.getElementById("cfg-q-ans").value = "";
+        document.getElementById("cfg-q-img").value = "";
+
+        // Reset edit mode state
+        cancelEdit(false);
+
+        // Keep round and category retained
+        document.getElementById("cfg-q-round").value = roundVal;
+        document.getElementById("cfg-q-cat").value = catVal;
+        document.getElementById("cfg-q-pts").value = ptsVal;
+        document.getElementById("cfg-q-timer").value = timerVal;
+
+        // Automatically set the question number to the next sequential question
+        autoSetQuestionNumber();
       });
     }
 
-    function addTeam(e) {
-  e.preventDefault();
-  const nameInput = document.getElementById("cfg-team-name");
-  const name = nameInput.value.trim();
-  if (!name) return;
+    function editQuestion(index) {
+      const bank = gameState.questionBank || [];
+      const q = bank[index];
+      if (!q) return;
 
-  const id = `table_${Date.now().toString().slice(-4)}`;
+      document.getElementById("cfg-q-edit-index").value = index;
+      document.getElementById("cfg-q-round").value = q.round || 1;
+      document.getElementById("cfg-q-num").value = q.number || 1;
+      document.getElementById("cfg-q-cat").value = q.category || "";
+      document.getElementById("cfg-q-text").value = q.text || "";
+      document.getElementById("cfg-q-ans").value = q.answer || "";
+      document.getElementById("cfg-q-pts").value = q.points || 10;
+      document.getElementById("cfg-q-timer").value = q.timerDuration || 45;
+      document.getElementById("cfg-q-img").value = q.imageUrl || "";
 
-  const newTeam = {
-    name: name,
-    totalScore: 0,
-    roundScore: 0,
-    sabotagesReceived: 0,
-    powerUps: {
-      doublePointsCards: 1,
-      sabotageCards: 2,
-      shieldCards: 2
+      // Visual state for Edit Mode
+      document.getElementById("form-title").firstElementChild.innerText = "✏️ Edit Question";
+      const badge = document.getElementById("form-mode-badge");
+      badge.innerText = `Editing Index #${index + 1}`;
+      badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-brand-yellow/20 text-brand-yellow border border-brand-yellow/30";
+
+      const submitBtn = document.getElementById("cfg-q-submit-btn");
+      submitBtn.innerText = "💾 Update Question";
+      submitBtn.className = "w-full py-2.5 bg-brand-yellow hover:bg-brand-yellow/90 text-slate-950 rounded-xl font-black text-xs transition shadow-md";
+
+      document.getElementById("btn-cancel-edit").classList.remove("hidden");
     }
-  };
 
-  db.ref(`quizState/teams/${id}`).set(newTeam)
-    .then(() => {
-      nameInput.value = "";
-      alert(`Team "${name}" added successfully!`);
-    })
-    .catch((error) => {
-      console.error("Error adding team:", error);
-      alert(`Failed to add team: ${error.message}`);
-    });
-}
+    function cancelEdit(resetNumbering = true) {
+      document.getElementById("cfg-q-edit-index").value = "-1";
 
-    function removeTeam(id) {
-      if (confirm("Delete this team?")) {
-        db.ref(`quizState/teams/${id}`).remove();
+      document.getElementById("form-title").firstElementChild.innerText = "➕ Add Question";
+      const badge = document.getElementById("form-mode-badge");
+      badge.innerText = "New Entry";
+      badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+
+      const submitBtn = document.getElementById("cfg-q-submit-btn");
+      submitBtn.innerText = "➕ Save Question to Database";
+      submitBtn.className = "w-full py-2.5 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs transition shadow-md";
+
+      document.getElementById("btn-cancel-edit").classList.add("hidden");
+
+      if (resetNumbering) {
+        document.getElementById("question-form").reset();
+        autoSetQuestionNumber();
       }
     }
 
-    function renderTeamsTable() {
-      const tbody = document.getElementById("teams-table-body");
+    function renderQuestionBankTable() {
+      const tbody = document.getElementById("question-bank-table-body");
+      if (!tbody) return;
       tbody.innerHTML = "";
 
-      const teams = gameState.teams || {};
-      Object.keys(teams).forEach(id => {
-        const t = teams[id];
+      const bank = gameState.questionBank || [];
+      bank.forEach((q, index) => {
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td class="py-2 px-3 font-mono text-slate-400">${id}</td>
-          <td class="py-2 px-3 font-bold text-white">${t.name}</td>
-          <td class="py-2 px-3 text-right">
-            <button onclick="removeTeam('${id}')" class="text-rose-400 hover:text-rose-300 font-bold">Delete</button>
+          <td class="py-2 px-3 font-bold text-brand-purple">R${q.round}</td>
+          <td class="py-2 px-3 font-bold text-white">Q${q.number}</td>
+          <td class="py-2 px-3 text-slate-300">${q.category}</td>
+          <td class="py-2 px-3 text-slate-400 truncate max-w-xs">${q.text}</td>
+          <td class="py-2 px-3 text-emerald-400 font-mono">${q.answer}</td>
+          <td class="py-2 px-3 text-right font-bold text-brand-yellow">${q.points}</td>
+          <td class="py-2 px-3 text-right space-x-2">
+            <button onclick="editQuestion(${index})" class="text-brand-purple hover:text-indigo-300 font-bold">Edit</button>
+            <button onclick="deleteQuestion(${index})" class="text-rose-400 hover:text-rose-300 font-bold">Delete</button>
           </td>
         `;
         tbody.appendChild(row);
       });
+
+      renderQuickRoundPills();
     }
 
-    // Clear all data and reset system to zero
-    function seedDefaultData() {
-      if (!confirm("Are you sure you want to clear ALL teams, questions, and timers to start from scratch? This action cannot be undone.")) return;
-
-      const emptyState = {
-        currentStage: "WELCOME",
-        welcomeMessage: "Waiting for Quizmaster to initialize Stage 1...",
-        activeQuestionIndex: 0,
-        currentRound: 1,
-        questionNumber: 1,
-        currentCategory: "-",
-        currentPoints: 0,
-        currentQuestionText: "No active question set.",
-        currentAnswerText: "-",
-        currentImageUrl: "",
-        timerRemaining: 0,
-        defaultTimerDuration: 30,
-        scoresLockedForActiveQ: false,
-        latestRoundLogs: ["Database reset. Ready to add teams and questions."],
-        teams: {},
-        questionBank: []
-      };
-
-      db.ref("quizState").set(emptyState, () => {
-        roundCheckedScores = {};
-        alert("All teams, questions, and timers have been completely cleared!");
+    function deleteQuestion(index) {
+      if (!confirm("Are you sure you want to delete this question?")) return;
+      
+      const bank = gameState.questionBank || [];
+      bank.splice(index, 1);
+      
+      db.ref("quizState/questionBank").set(bank, () => {
+        autoSetQuestionNumber();
       });
     }
-
-    // Initialize Lucide Icons
-    lucide.createIcons();
-    function renderQuestionBankTable() {
-  const tbody = document.getElementById("question-bank-table-body");
-  if (!tbody) return;
-  tbody.innerHTML = "";
-
-  const bank = gameState.questionBank || [];
-  bank.forEach((q, index) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td class="py-2 px-3 font-bold text-brand-purple">R${q.round}</td>
-      <td class="py-2 px-3 font-bold text-white">Q${q.number}</td>
-      <td class="py-2 px-3 text-slate-300">${q.category}</td>
-      <td class="py-2 px-3 text-slate-400 truncate max-w-xs">${q.text}</td>
-      <td class="py-2 px-3 text-emerald-400 font-mono">${q.answer}</td>
-      <td class="py-2 px-3 text-right font-bold text-brand-yellow">${q.points}</td>
-      <td class="py-2 px-3 text-right">
-        <button onclick="deleteQuestion(${index})" class="text-rose-400 hover:text-rose-300 font-bold">Delete</button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-function deleteQuestion(index) {
-  if (!confirm("Are you sure you want to delete this question?")) return;
-  
-  const bank = gameState.questionBank || [];
-  bank.splice(index, 1);
-  
-  db.ref("quizState/questionBank").set(bank, () => {
-    alert("Question deleted successfully!");
-  });
-}
   </script>
 </body>
 </html>
