@@ -716,8 +716,25 @@ function updateWorkflowControlState() {
   tbody.innerHTML = "";
 
   const teams = gameState.teams || {};
-  Object.keys(teams).forEach(id => {
+  const stage = gameState.currentStage || "WELCOME";
+  const teamIds = Object.keys(teams);
+
+  // Count occurrences of each totalScore to detect ties
+  const scoreCounts = {};
+  teamIds.forEach(id => {
+    const score = teams[id].totalScore || 0;
+    scoreCounts[score] = (scoreCounts[score] || 0) + 1;
+  });
+
+  // Clincher buttons are enabled ONLY during STANDINGS or PODIUM stages when a team is actually tied with another team
+  const isStandingsOrPodium = (stage === "STANDINGS" || stage === "PODIUM");
+
+  teamIds.forEach(id => {
     const team = teams[id];
+    const teamScore = team.totalScore || 0;
+    const isTied = scoreCounts[teamScore] > 1;
+    const canUseClincher = isStandingsOrPodium && isTied;
+
     const row = document.createElement("tr");
     
     row.innerHTML = `
@@ -731,7 +748,11 @@ function updateWorkflowControlState() {
       <td class="py-2.5 px-3 text-right font-mono text-slate-300">${team.roundScore || 0} Pts</td>
       <td class="py-2.5 px-3 text-right font-mono text-rose-400 font-bold">${team.sabotagesReceived || 0}/3</td>
       <td class="py-2.5 px-3 text-right">
-        <button onclick="addTiebreakerPoint('${id}')" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition">
+        <button onclick="addTiebreakerPoint('${id}')" 
+          ${!canUseClincher ? 'disabled' : ''} 
+          class="px-2.5 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition ${
+            canUseClincher ? 'hover:bg-amber-500/30 cursor-pointer' : 'opacity-30 cursor-not-allowed pointer-events-none'
+          }">
           +1 Clincher (${team.tiebreakerScore || 0})
         </button>
       </td>
@@ -796,9 +817,15 @@ function addTiebreakerPoint(teamId) {
   const teamName = gameState.teams?.[teamId]?.name || "this team";
   if (!confirm(`Award +1 Clincher Tiebreaker Point to ${teamName}?`)) return;
 
-  db.ref(`quizState/teams/${teamId}/tiebreakerScore`).transaction(val => (val || 0) + 1, (err) => {
+  db.ref(`quizState/teams/${teamId}`).transaction(team => {
+    if (team) {
+      team.tiebreakerScore = (team.tiebreakerScore || 0) + 1;
+      team.totalScore = (team.totalScore || 0) + 1; // Increments totalScore at Podium/Leaderboard
+    }
+    return team;
+  }, (err) => {
     if (!err) {
-      alert(`Added +1 Clincher point to ${teamName}!`);
+      alert(`Added +1 Clincher point to ${teamName}! Total score updated.`);
     } else {
       alert("Error adding tiebreaker point: " + err.message);
     }
