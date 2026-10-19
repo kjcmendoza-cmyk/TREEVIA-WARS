@@ -1027,6 +1027,91 @@ function updateWorkflowControlState() {
         autoSetQuestionNumber();
       });
     }
+    // ==========================================
+// TEAM ROSTER & DATABASE RESET FUNCTIONS
+// ==========================================
+
+// Add a new team to Firebase
+function addTeam(e) {
+  e.preventDefault();
+  const teamNameInput = document.getElementById("cfg-team-name");
+  const teamName = teamNameInput.value.trim();
+  if (!teamName) return;
+
+  const teamId = "team_" + Date.now();
+  db.ref(`quizState/teams/${teamId}`).set({
+    name: teamName,
+    totalScore: 0,
+    roundScore: 0,
+    sabotagesReceived: 0
+  }, (error) => {
+    if (!error) {
+      teamNameInput.value = "";
+    } else {
+      alert("Error adding team: " + error.message);
+    }
+  });
+}
+
+// Delete a team from Firebase
+function deleteTeam(teamId) {
+  if (!confirm("Are you sure you want to remove this team?")) return;
+  db.ref(`quizState/teams/${teamId}`).remove();
+}
+
+// Render the teams list in Event Setup
+function renderTeamsTable() {
+  const tbody = document.getElementById("teams-table-body");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const teams = gameState.teams || {};
+  const teamKeys = Object.keys(teams);
+
+  if (teamKeys.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-slate-500">No teams added yet.</td></tr>`;
+    return;
+  }
+
+  teamKeys.forEach((id, index) => {
+    const team = teams[id];
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="py-2.5 px-3 font-mono text-slate-400">Table ${index + 1}</td>
+      <td class="py-2.5 px-3 font-semibold text-white">${team.name}</td>
+      <td class="py-2.5 px-3 text-right">
+        <button onclick="deleteTeam('${id}')" class="text-rose-400 hover:text-rose-300 font-bold">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+// Reset / Clear all data in Firebase
+function seedDefaultData() {
+  if (!confirm("Are you sure you want to reset all game data and clear to zero? This action cannot be undone.")) return;
+
+  const defaultState = {
+    currentStage: "WELCOME",
+    currentRound: 1,
+    questionNumber: 1,
+    activeQuestionIndex: 0,
+    timerRemaining: 0,
+    defaultTimerDuration: 30,
+    scoresLockedForActiveQ: false,
+    questionBank: [],
+    teams: {},
+    pendingPowerUps: {}
+  };
+
+  db.ref("quizState").set(defaultState, (err) => {
+    if (!err) {
+      alert("All event data has been reset to zero.");
+    } else {
+      alert("Failed to reset database: " + err.message);
+    }
+  });
+}
   </script>
 </body>
 </html>
