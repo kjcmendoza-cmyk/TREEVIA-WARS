@@ -766,15 +766,25 @@ function renderScoreMatrix() {
   const stage = gameState.currentStage || "WELCOME";
   const teamIds = Object.keys(teams);
 
+  // Check if we are at the final round standings or final podium stage (where Podium tab is allowed)
+  const bank = gameState.questionBank || [];
+  const currentIdx = gameState.activeQuestionIndex ?? 0;
+  const currentQ = bank[currentIdx];
+  const nextQ = bank[currentIdx + 1];
+  const maxRoundInBank = bank.length > 0 ? Math.max(...bank.map(q => q.round || 1)) : 1;
+  const currentRound = currentQ ? (currentQ.round || 1) : 1;
+  const isLastQuestionOfRound = currentQ && (!nextQ || (nextQ.round && nextQ.round > currentQ.round));
+  const isFinalRound = currentRound >= maxRoundInBank && isLastQuestionOfRound;
+
+  // Tiebreaker buttons (+10, +5, +1) are ONLY active when Podium tab is accessible
+  const isPodiumAllowed = (stage === "STANDINGS" && isFinalRound) || stage === "PODIUM";
+
   // Count occurrences of each totalScore to detect ties
   const scoreCounts = {};
   teamIds.forEach(id => {
     const score = teams[id].totalScore || 0;
     scoreCounts[score] = (scoreCounts[score] || 0) + 1;
   });
-
-  // Clincher buttons are enabled ONLY during STANDINGS or PODIUM stages
-  const isStandingsOrPodium = (stage === "STANDINGS" || stage === "PODIUM");
 
   // Track globally awarded clincher points across all teams
   const has10 = Object.values(teams).some(t => (t.tiebreakerScore || 0) >= 10);
@@ -787,7 +797,7 @@ function renderScoreMatrix() {
   teamIds.forEach(id => {
     const team = teams[id];
     const teamScore = team.totalScore || 0;
-    const isTied = scoreCounts[teamScore] > 1;
+    const teamTiebreaker = team.tiebreakerScore || 0;
 
     // Count teams with strictly higher totalScore to determine tie rank
     const higherTeamsCount = Object.values(teams).filter(t => (t.totalScore || 0) > teamScore).length;
@@ -797,19 +807,22 @@ function renderScoreMatrix() {
     let allow5 = false;
     let allow1 = false;
 
-    if (higherTeamsCount === 0) {
-        // Tied for 1st Place rank
+    // Activate buttons ONLY if Podium is accessible AND this specific team has NOT received a clincher yet (tiebreakerScore === 0)
+    if (isPodiumAllowed && teamTiebreaker === 0) {
+      if (higherTeamsCount === 0) {
+        // Tied for 1st Place (Grand Champion)
         if (!has10) allow10 = true;
         else if (!has5) allow5 = true;
         else if (!has1) allow1 = true;
       } else if (higherTeamsCount === 1) {
-        // Tied for 2nd Place rank
+        // Tied for 2nd Place
         if (!has5) allow5 = true;
         else if (!has1) allow1 = true;
       } else if (higherTeamsCount === 2) {
-        // Tied for 3rd Place rank
+        // Tied for 3rd Place
         if (!has1) allow1 = true;
       }
+    }
 
     const placementLabel = placements[id] || "";
     const isTiebreakerNeeded = placementLabel === "(Tiebreaker)";
