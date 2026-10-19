@@ -776,29 +776,29 @@
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSciFiSound(type) {
+  if (!window.AudioContext && !window.webkitAudioContext) return;
   if (audioCtx.state === 'suspended') audioCtx.resume();
-  
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
 
   const now = audioCtx.currentTime;
 
   if (type === 'tick') {
+    // Timer Countdown Tick (10s - 6s)
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
     osc.frequency.setValueAtTime(800, now);
     gain.gain.setValueAtTime(0.08, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
     osc.start(now);
     osc.stop(now + 0.05);
-  } else if (type === 'powerup') {
-    osc.frequency.setValueAtTime(200, now);
-    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.25);
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-    osc.start(now);
-    osc.stop(now + 0.25);
+
   } else if (type === 'alarm') {
+    // Critical Timer Alarm Zap (5s - 1s)
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(900, now);
     osc.frequency.linearRampToValueAtTime(400, now + 0.12);
@@ -806,12 +806,146 @@ function playSciFiSound(type) {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
     osc.start(now);
     osc.stop(now + 0.12);
+
+  } else if (type === 'next_question') {
+    // Next Question: High-tech ascending laser chirp
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.18);
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc.start(now);
+    osc.stop(now + 0.18);
+
+  } else if (type === 'reveal_answer') {
+    // Answer Reveal: Triumphant 4-note ascending chime
+    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const startTime = now + (idx * 0.06);
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.15, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+      osc.start(startTime);
+      osc.stop(startTime + 0.3);
+    });
+
+  } else if (type === 'double_points' || type === 'powerup') {
+    // Step-Up Transformer: High-power rising spin-up surge
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(1600, now + 0.35);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.start(now);
+    osc.stop(now + 0.35);
+
+  } else if (type === 'sabotage') {
+    // Voltage Drop: Heavy pitch-drop zap crash
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.linearRampToValueAtTime(120, now + 0.3);
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc.start(now);
+    osc.stop(now + 0.3);
+
+  } else if (type === 'shield') {
+    // Surge Protector: Forcefield envelope pulse
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.linearRampToValueAtTime(600, now + 0.15);
+    osc.frequency.linearRampToValueAtTime(300, now + 0.3);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.start(now);
+    osc.stop(now + 0.35);
+
+  } else if (type === 'clincher') {
+    // Sudden-Death Clincher: High-register victory coin ping
+    [880, 1320].forEach((freq, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const startTime = now + (idx * 0.08);
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.18, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+      osc.start(startTime);
+      osc.stop(startTime + 0.25);
+    });
+
+  } else if (type === 'round_intro') {
+    // Round Intro: Deep sci-fi charging baseline
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    osc.start(now);
+    osc.stop(now + 0.45);
+
+  } else if (type === 'standings') {
+    // Standings: 3-note resolution chime
+    [300, 450, 600].forEach((freq, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const startTime = now + (idx * 0.07);
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.15, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.2);
+      osc.start(startTime);
+      osc.stop(startTime + 0.2);
+    });
+
+  } else if (type === 'podium') {
+    // Grand Finale Podium: Victory fanfare
+    [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const startTime = now + (idx * 0.09);
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.2, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+      osc.start(startTime);
+      osc.stop(startTime + 0.4);
+    });
   }
 }
 
-// 2. TOAST NOTIFICATION ENGINE (DEFINED SECOND)
-function showToast(title, message, type = "yellow", iconName = "zap") {
-  playSciFiSound('powerup'); // <--- Call sound here at top of toast function
+function showToast(title, message, type = "yellow", iconName = "zap", soundType = "double_points") {
+  if (soundType) playSciFiSound(soundType);
 
   const container = document.getElementById("toast-container");
   if (!container) return;
@@ -980,63 +1114,87 @@ function showToast(title, message, type = "yellow", iconName = "zap") {
       renderProjectorUI();
     }
 
-    function renderProjectorUI() {
-      const stage = gameState.currentStage || "WELCOME";
+    let lastRenderedStage = null;
+let lastRenderedQuestionNum = null;
 
-      document.getElementById("view-welcome").classList.add("hidden");
-      document.getElementById("view-round-intro").classList.add("hidden");
-      document.getElementById("view-question").classList.add("hidden");
-      document.getElementById("view-standings").classList.add("hidden");
-      document.getElementById("view-podium").classList.add("hidden");
+function renderProjectorUI() {
+  const stage = gameState.currentStage || "WELCOME";
+  const qNum = gameState.questionNumber || 1;
 
-      if (stage === "WELCOME") {
-        document.getElementById("view-welcome").classList.remove("hidden");
-      }
-      else if (stage === "ROUND_INTRO") {
-        document.getElementById("view-round-intro").classList.remove("hidden");
-        document.getElementById("round-intro-badge").innerText = `ROUND ${gameState.currentRound || 1}`;
-        document.getElementById("round-intro-title").innerText = gameState.currentCategory || "General EE";
-      }
-      else if (stage === "QUESTION" || stage === "ANSWER_REVEAL") {
-        document.getElementById("view-question").classList.remove("hidden");
-        const oscCanvas = document.getElementById("oscilloscope-canvas");
-  if (oscCanvas && (oscCanvas.width === 0 || oscCanvas.height === 0)) {
-    oscCanvas.width = oscCanvas.offsetWidth || 200;
-    oscCanvas.height = oscCanvas.offsetHeight || 50;
-  }
-        document.getElementById("q-category").innerText = gameState.currentCategory || "General EE";
-        document.getElementById("q-title").innerText = `Question #${gameState.questionNumber || 1}`;
-        document.getElementById("q-points").innerText = `${gameState.currentPoints || 10} Pts`;
-        document.getElementById("q-text").innerText = gameState.currentQuestionText || "Waiting for question...";
-
-        renderReactorTimer(gameState.timerRemaining || 0, gameState.timerTotal || 30);
-
-        const mediaBox = document.getElementById("q-media-container");
-        if (gameState.currentImageUrl) {
-          document.getElementById("q-image").src = gameState.currentImageUrl;
-          mediaBox.classList.remove("hidden");
-        } else {
-          mediaBox.classList.add("hidden");
-        }
-
-        const answerBox = document.getElementById("answer-reveal-box");
-        if (stage === "ANSWER_REVEAL") {
-          document.getElementById("q-answer").innerText = gameState.currentAnswerText || "";
-          answerBox.classList.remove("hidden");
-        } else {
-          answerBox.classList.add("hidden");
-        }
-      } 
-      else if (stage === "STANDINGS") {
-        document.getElementById("view-standings").classList.remove("hidden");
-        document.getElementById("round-title-display").innerText = `Round ${gameState.currentRound || 1} Standings`;
-        renderLeaderboardAndLogs();
-      } 
-      else if (stage === "PODIUM") {
-        document.getElementById("view-podium").classList.remove("hidden");
-        renderPodium();
+  // AUTO-PLAY SOUND EFFECTS ON STAGE OR QUESTION TRANSITION
+  if (stage !== lastRenderedStage || (stage === "QUESTION" && qNum !== lastRenderedQuestionNum)) {
+    if (lastRenderedStage !== null) {
+      if (stage === "QUESTION") {
+        playSciFiSound('next_question');
+      } else if (stage === "ANSWER_REVEAL") {
+        playSciFiSound('reveal_answer');
+      } else if (stage === "ROUND_INTRO") {
+        playSciFiSound('round_intro');
+      } else if (stage === "STANDINGS") {
+        playSciFiSound('standings');
+      } else if (stage === "PODIUM") {
+        playSciFiSound('podium');
       }
     }
+    lastRenderedStage = stage;
+    lastRenderedQuestionNum = qNum;
+  } // <--- Line 1141 closes the sound trigger check; REMOVE THE extra '}' that was on line 1142!
+
+  // Hide all view sections
+  document.getElementById("view-welcome").classList.add("hidden");
+  document.getElementById("view-round-intro").classList.add("hidden");
+  document.getElementById("view-question").classList.add("hidden");
+  document.getElementById("view-standings").classList.add("hidden");
+  document.getElementById("view-podium").classList.add("hidden");
+
+  if (stage === "WELCOME") {
+    document.getElementById("view-welcome").classList.remove("hidden");
+  }
+  else if (stage === "ROUND_INTRO") {
+    document.getElementById("view-round-intro").classList.remove("hidden");
+    document.getElementById("round-intro-badge").innerText = `ROUND ${gameState.currentRound || 1}`;
+    document.getElementById("round-intro-title").innerText = gameState.currentCategory || "General EE";
+  }
+  else if (stage === "QUESTION" || stage === "ANSWER_REVEAL") {
+    document.getElementById("view-question").classList.remove("hidden");
+    const oscCanvas = document.getElementById("oscilloscope-canvas");
+    if (oscCanvas && (oscCanvas.width === 0 || oscCanvas.height === 0)) {
+      oscCanvas.width = oscCanvas.offsetWidth || 200;
+      oscCanvas.height = oscCanvas.offsetHeight || 50;
+    }
+    document.getElementById("q-category").innerText = gameState.currentCategory || "General EE";
+    document.getElementById("q-title").innerText = `Question #${gameState.questionNumber || 1}`;
+    document.getElementById("q-points").innerText = `${gameState.currentPoints || 10} Pts`;
+    document.getElementById("q-text").innerText = gameState.currentQuestionText || "Waiting for question...";
+
+    renderReactorTimer(gameState.timerRemaining || 0, gameState.timerTotal || 30);
+
+    const mediaBox = document.getElementById("q-media-container");
+    if (gameState.currentImageUrl) {
+      document.getElementById("q-image").src = gameState.currentImageUrl;
+      mediaBox.classList.remove("hidden");
+    } else {
+      mediaBox.classList.add("hidden");
+    }
+
+    const answerBox = document.getElementById("answer-reveal-box");
+    if (stage === "ANSWER_REVEAL") {
+      document.getElementById("q-answer").innerText = gameState.currentAnswerText || "";
+      answerBox.classList.remove("hidden");
+    } else {
+      answerBox.classList.add("hidden");
+    }
+  } 
+  else if (stage === "STANDINGS") {
+    document.getElementById("view-standings").classList.remove("hidden");
+    document.getElementById("round-title-display").innerText = `Round ${gameState.currentRound || 1} Standings`;
+    renderLeaderboardAndLogs();
+  } 
+  else if (stage === "PODIUM") {
+    document.getElementById("view-podium").classList.remove("hidden");
+    renderPodium();
+  }
+} // <--- Line 1198 correctly closes renderProjectorUI()
 
     function renderReactorTimer(remaining, total) {
       const display = document.getElementById("timer-display");
@@ -1294,51 +1452,50 @@ function showToast(title, message, type = "yellow", iconName = "zap") {
     }
 
     function activateDoublePoints() {
-      const round = gameState.currentRound || 1;
-      
-      if (isFirebaseConnected && db) {
-        db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/doublePoints`).set(true);
-        db.ref(`quizState/teams/${selectedTableId}/powerUps/doublePointsCards`).transaction(count => Math.max(0, (count || 1) - 1));
-      }
-      
-      showToast("POWER-UP ACTIVATED", "Step-Up Transformer (Double Points) is active for this round!", "yellow", "zap");
-    }
+  const round = gameState.currentRound || 1;
 
-    function castSabotage() {
-      const targetId = document.getElementById("sabotage-target-select").value;
-      const round = gameState.currentRound || 1;
+  if (isFirebaseConnected && db) {
+    db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/doublePoints`).set(true);
+    db.ref(`quizState/teams/${selectedTableId}/powerUps/doublePointsCards`).transaction(count => Math.max(0, (count || 1) - 1));
+  }
 
-      if (isFirebaseConnected && db) {
-        db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/sabotageTarget`).set(targetId);
-        db.ref(`quizState/teams/${selectedTableId}/powerUps/sabotageCards`).transaction(count => Math.max(0, (count || 2) - 1));
-      }
+  showToast("POWER-UP ACTIVATED", "Step-Up Transformer (Double Points) is active for this round!", "yellow", "zap", "double_points");
+}
 
-      showToast("SABOTAGE CAST", "Voltage Drop (-1 Pt) target locked and engaged!", "pink", "flame");
-    }
+function castSabotage() {
+  const targetId = document.getElementById("sabotage-target-select").value;
+  const round = gameState.currentRound || 1;
 
-    function activateShield() {
-      const round = gameState.currentRound || 1;
+  if (isFirebaseConnected && db) {
+    db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/sabotageTarget`).set(targetId);
+    db.ref(`quizState/teams/${selectedTableId}/powerUps/sabotageCards`).transaction(count => Math.max(0, (count || 2) - 1));
+  }
 
-      if (isFirebaseConnected && db) {
-        db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/shieldActive`).set(true);
-        db.ref(`quizState/teams/${selectedTableId}/powerUps/shieldCards`).transaction(count => Math.max(0, (count || 2) - 1));
-      }
+  showToast("SABOTAGE CAST", "Voltage Drop (-1 Pt) target locked and engaged!", "pink", "flame", "sabotage");
+}
 
-      showToast("SHIELD DEPLOYED", "Surge Protector is active. Immunity granted against incoming attacks!", "cyan", "shield-check");
-    }
+function activateShield() {
+  const round = gameState.currentRound || 1;
 
-    function toggleMechanicsModal(show) {
-      const modal = document.getElementById("mechanics-modal");
-      if (show) modal.classList.remove("hidden");
-      else modal.classList.add("hidden");
-    }
+  if (isFirebaseConnected && db) {
+    db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/shieldActive`).set(true);
+    db.ref(`quizState/teams/${selectedTableId}/powerUps/shieldCards`).transaction(count => Math.max(0, (count || 2) - 1));
+  }
 
-    function awardClincherFaci(points, rankLabel) {
-      if (!selectedTableId) {
-        showToast("NO TABLE ASSIGNED", "Please select your table first.", "rose", "alert-circle");
-        return;
-      }
+  showToast("SHIELD DEPLOYED", "Surge Protector is active. Immunity granted against incoming attacks!", "cyan", "shield-check", "shield");
+}
 
+function toggleMechanicsModal(show) {
+  const modal = document.getElementById("mechanics-modal");
+  if (show) modal.classList.remove("hidden");
+  else modal.classList.add("hidden");
+}
+
+function awardClincherFaci(points, rankLabel) {
+  if (!selectedTableId) {
+    showToast("NO TABLE ASSIGNED", "Please select your table first.", "rose", "alert-circle", "sabotage");
+    return;
+  }
       const teamName = gameState.teams[selectedTableId]?.name || selectedTableId;
 
       if (!confirm(`Award +${points} pts (${rankLabel} Clincher) to ${teamName}?`)) return;
