@@ -171,10 +171,15 @@
                 </h3>
                 <p class="text-xs text-slate-400">Tick boxes for teams that gave correct answers for this question.</p>
               </div>
-              <button id="btn-lock-scores" onclick="saveQuestionScores()" class="px-3 py-1.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs rounded-lg transition">
-  💾 Lock Question Scores
-</button>
-            </div>
+              <div class="flex items-center space-x-2">
+  <button id="btn-unlock-scores" onclick="undoScoreLock()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-lg border border-slate-700 transition">
+    ↩️ Undo Lock
+  </button>
+  <button id="btn-lock-scores" onclick="saveQuestionScores()" class="px-3 py-1.5 bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs rounded-lg transition">
+    💾 Lock Question Scores
+  </button>
+</div>
+</div>
 
             <div class="overflow-x-auto">
               <table class="w-full text-left border-collapse">
@@ -202,10 +207,15 @@
                 </h3>
                 <p class="text-xs text-slate-400">Executes multipliers, resolves sabotages vs shields, and updates leaderboard.</p>
               </div>
-              <button id="btn-resolve-round" onclick="evaluateAndEndRound()" class="px-5 py-2.5 bg-gradient-to-r from-brand-pink to-brand-purple hover:opacity-90 text-white font-black text-xs rounded-xl shadow-lg transition">
-                🚀 RESOLVE & END ROUND
-              </button>
-            </div>
+              <div class="flex items-center space-x-2">
+  <button id="btn-undo-round" onclick="undoRoundResolution()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-xl border border-slate-700 transition">
+    ↩️ Undo Resolve
+  </button>
+  <button id="btn-resolve-round" onclick="evaluateAndEndRound()" class="px-5 py-2.5 bg-gradient-to-r from-brand-pink to-brand-purple hover:opacity-90 text-white font-black text-xs rounded-xl shadow-lg transition">
+    🚀 RESOLVE & END ROUND
+  </button>
+</div>
+</div>
 
             <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-400 space-y-1">
               <p>Formula: Final Round Score = (Base Correct Points × Double Multiplier) - Net Sabotage Deduction</p>
@@ -610,8 +620,8 @@ function updateWorkflowControlState() {
 
   // 1. STRICT STAGE NAVIGATOR LOCKS
   setElementState("stage-btn-WELCOME", stage === "WELCOME");
-  setElementState("stage-btn-ROUND_INTRO", stage === "WELCOME" || (stage === "STANDINGS" && !isFinalRound));
-  setElementState("stage-btn-QUESTION", stage === "ROUND_INTRO");
+  setElementState("stage-btn-ROUND_INTRO", stage === "WELCOME" || stage === "ROUND_INTRO" || (stage === "STANDINGS" && !isFinalRound));
+  setElementState("stage-btn-QUESTION", stage === "ROUND_INTRO" || stage === "QUESTION");
 
   const canRevealAnswer = (stage === "QUESTION" && isTimerZero) || stage === "ANSWER_REVEAL";
   setElementState("stage-btn-ANSWER_REVEAL", canRevealAnswer);
@@ -630,6 +640,7 @@ function updateWorkflowControlState() {
   // 3. INSTANT SCORE MATRIX & LOCKING
   const canGradeMatrix = stage === "ANSWER_REVEAL" && !isScoresLocked;
   setElementState("btn-lock-scores", canGradeMatrix);
+  setElementState("btn-unlock-scores", isScoresLocked && stage === "ANSWER_REVEAL");
 
   const checkboxes = document.querySelectorAll('#score-matrix-body input[type="checkbox"]');
   checkboxes.forEach(chk => {
@@ -644,15 +655,20 @@ function updateWorkflowControlState() {
   // 4. ROUND EVALUATOR ENGINE LOCKS
   const canResolveRound = isLastQuestionOfRound && stage === "ANSWER_REVEAL" && isScoresLocked;
   setElementState("btn-resolve-round", canResolveRound);
+  setElementState("btn-undo-round", stage === "STANDINGS");
 
   // 5. QUESTION NAVIGATION LOCKS
   const canAdvanceNextQ = stage === "ANSWER_REVEAL" && isScoresLocked && !isLastQuestionOfRound;
+  const canAdvancePrevQ = currentIdx > 0 && (stage === "WELCOME" || stage === "ROUND_INTRO" || (stage === "ANSWER_REVEAL" && isScoresLocked));
 
   setElementState("btn-next-q", canAdvanceNextQ);
-  setElementState("btn-prev-q", false);
+  setElementState("btn-prev-q", canAdvancePrevQ);
   
   const selectElem = document.getElementById("active-question-select");
-  if (selectElem) selectElem.disabled = true;
+  if (selectElem) {
+    const canSelectQ = stage === "WELCOME" || stage === "ROUND_INTRO" || (stage === "ANSWER_REVEAL" && isScoresLocked);
+    selectElem.disabled = !canSelectQ;
+  }
 }
 
     // ==========================================
@@ -714,6 +730,9 @@ function updateWorkflowControlState() {
   const teams = gameState.teams || {};
   const points = gameState.currentPoints || 0;
 
+  // 1. Save snapshot of current teams state before applying new scores
+  const backupTeams = JSON.parse(JSON.stringify(teams));
+
   Object.keys(teams).forEach(id => {
     const chk = document.getElementById(`chk-${id}`);
     if (chk?.checked) {
@@ -727,9 +746,32 @@ function updateWorkflowControlState() {
     if (chk) chk.checked = false;
   });
 
-  // Lock score submission for current question in Firebase
-  db.ref("quizState/scoresLockedForActiveQ").set(true, () => {
-    alert("Question scores locked! Click 'Next Q ►' to proceed.");
+  // 2. Store snapshot and lock state in Firebase
+  db.ref("quizState").update({
+    scoresLockedForActiveQ: true,
+    lastScoreSnapshot: backupTeams
+  }, (err) => {
+    if (!err) alert("Question scores locked! Click 'Next Q ►' to proceed.");
+  });
+}
+
+function undoScoreLock() {
+  if (!confirm("Are you sure you want to unlock scores and revert points for this question?")) return;
+
+  db.ref("quizState/lastScoreSnapshot").once("value", (snap) => {
+    const backupTeams = snap.val();
+    if (!backupTeams) {
+      alert("No score lock snapshot found to undo!");
+      return;
+    }
+
+    db.ref("quizState").update({
+      teams: backupTeams,
+      scoresLockedForActiveQ: false,
+      lastScoreSnapshot: null // Clear snapshot after undoing
+    }, (err) => {
+      if (!err) alert("Scores unlocked and reverted!");
+    });
   });
 }
 
@@ -737,85 +779,100 @@ function updateWorkflowControlState() {
     // 6. POWER-UP RESOLUTION ENGINE
     // ==========================================
     function evaluateAndEndRound() {
-      const round = gameState.currentRound || 1;
-      const teams = gameState.teams || {};
-      const pending = gameState.pendingPowerUps?.[`round_${round}`] || {};
-      
-      const logs = [];
-      const updates = {};
+  const round = gameState.currentRound || 1;
+  const teams = gameState.teams || {};
+  const pending = gameState.pendingPowerUps?.[`round_${round}`] || {};
+  
+  // 1. Save backup snapshot before modifying totals
+  const backupState = {
+    teams: JSON.parse(JSON.stringify(teams)),
+    currentStage: gameState.currentStage || "ANSWER_REVEAL"
+  };
 
-      // Step 1: Track sabotage attacks directed at each team
-      const incomingAttacks = {};
-      Object.keys(teams).forEach(tId => incomingAttacks[tId] = 0);
+  const logs = [];
+  const updates = {};
 
-      Object.keys(pending).forEach(attackerId => {
-        const targetId = pending[attackerId]?.sabotageTarget;
-        if (targetId && incomingAttacks[targetId] !== undefined) {
-          incomingAttacks[targetId] += 1;
-        }
-      });
+  // Step 1: Track sabotage attacks
+  const incomingAttacks = {};
+  Object.keys(teams).forEach(tId => incomingAttacks[tId] = 0);
 
-      // Step 2: Resolve each team's score using formula
-      Object.keys(teams).forEach(teamId => {
-        const team = teams[teamId];
-        const teamPending = pending[teamId] || {};
-        
-        const baseRoundScore = team.roundScore || 0;
-        const doubleActive = teamPending.doublePoints || false;
-        const shieldActive = teamPending.shieldActive || false;
-        const attacksReceived = incomingAttacks[teamId] || 0;
-
-        // 2x Multiplier[cite: 3]
-        const multiplier = doubleActive ? 2 : 1;
-        let scoreFromQuestions = baseRoundScore * multiplier;
-
-        if (doubleActive) {
-          logs.push(`⚡ ${team.name} used Step-Up Transformer (2x Double Points)![cite: 3]`);
-        }
-
-        // Net Sabotage Resolution[cite: 3]
-        let netSabotageLoss = 0;
-        let actualHitsRecorded = 0;
-
-        if (attacksReceived > 0) {
-          if (shieldActive) {
-            logs.push(`🛡️ ${team.name} deployed Surge Protector (Shield) and BLOCKED ${attacksReceived} incoming Voltage Drop attack(s)![cite: 3]`);
-          } else {
-            // Check Anti-Dogpiling Cap (Max 3 total across entire game)[cite: 3]
-            const currentCap = team.sabotagesReceived || 0;
-            const remainingCapRoom = Math.max(0, 3 - currentCap);
-            
-            actualHitsRecorded = Math.min(attacksReceived, remainingCapRoom);
-            netSabotageLoss = actualHitsRecorded * 1; // 1 pt deduction per hit[cite: 3]
-
-            logs.push(`💥 ${team.name} was hit by ${actualHitsRecorded} Voltage Drop attack(s) (-${netSabotageLoss} Pts)[cite: 3].`);
-          }
-        } else if (shieldActive) {
-          logs.push(`🛡️ ${team.name} deployed Surge Protector (Shield), but received no attacks (Shield wasted)[cite: 3].`);
-        }
-
-        // Calculate Final Round Score
-        const finalRoundScore = Math.max(0, scoreFromQuestions - netSabotageLoss);
-        const newTotalScore = (team.totalScore || 0) + finalRoundScore;
-        const newSabotagesReceived = (team.sabotagesReceived || 0) + actualHitsRecorded;
-
-        // Stage DB updates
-        updates[`quizState/teams/${teamId}/totalScore`] = newTotalScore;
-        updates[`quizState/teams/${teamId}/roundScore`] = 0; // Reset for next round
-        updates[`quizState/teams/${teamId}/sabotagesReceived`] = newSabotagesReceived;
-      });
-
-      // Reset checked state & push logs
-      roundCheckedScores = {};
-      updates[`quizState/latestRoundLogs`] = logs;
-      updates[`quizState/currentStage`] = "STANDINGS";
-
-      db.ref().update(updates, (err) => {
-        if (!err) {
-          alert(`Round ${round} evaluated successfully! Stage switched to Standings.`);
-        }
-      });
+  Object.keys(pending).forEach(attackerId => {
+    const targetId = pending[attackerId]?.sabotageTarget;
+    if (targetId && incomingAttacks[targetId] !== undefined) {
+      incomingAttacks[targetId] += 1;
     }
+  });
+
+  // Step 2: Resolve scores
+  Object.keys(teams).forEach(teamId => {
+    const team = teams[teamId];
+    const teamPending = pending[teamId] || {};
+    
+    const baseRoundScore = team.roundScore || 0;
+    const doubleActive = teamPending.doublePoints || false;
+    const shieldActive = teamPending.shieldActive || false;
+    const attacksReceived = incomingAttacks[teamId] || 0;
+
+    const multiplier = doubleActive ? 2 : 1;
+    let scoreFromQuestions = baseRoundScore * multiplier;
+
+    if (doubleActive) logs.push(`⚡ ${team.name} used Step-Up Transformer (2x Double Points)!`);
+
+    let netSabotageLoss = 0;
+    let actualHitsRecorded = 0;
+
+    if (attacksReceived > 0) {
+      if (shieldActive) {
+        logs.push(`🛡️ ${team.name} deployed Surge Protector (Shield) and BLOCKED ${attacksReceived} attack(s)!`);
+      } else {
+        const currentCap = team.sabotagesReceived || 0;
+        const remainingCapRoom = Math.max(0, 3 - currentCap);
+        actualHitsRecorded = Math.min(attacksReceived, remainingCapRoom);
+        netSabotageLoss = actualHitsRecorded * 1;
+        logs.push(`💥 ${team.name} was hit by ${actualHitsRecorded} Voltage Drop attack(s) (-${netSabotageLoss} Pts).`);
+      }
+    }
+
+    const finalRoundScore = Math.max(0, scoreFromQuestions - netSabotageLoss);
+    const newTotalScore = (team.totalScore || 0) + finalRoundScore;
+    const newSabotagesReceived = (team.sabotagesReceived || 0) + actualHitsRecorded;
+
+    updates[`quizState/teams/${teamId}/totalScore`] = newTotalScore;
+    updates[`quizState/teams/${teamId}/roundScore`] = 0;
+    updates[`quizState/teams/${teamId}/sabotagesReceived`] = newSabotagesReceived;
+  });
+
+  roundCheckedScores = {};
+  updates[`quizState/latestRoundLogs`] = logs;
+  updates[`quizState/currentStage`] = "STANDINGS";
+  updates[`quizState/lastRoundResolutionSnapshot`] = backupState;
+
+  db.ref().update(updates, (err) => {
+    if (!err) {
+      alert(`Round ${round} evaluated successfully! Stage switched to Standings.`);
+    }
+  });
+}
+
+function undoRoundResolution() {
+  if (!confirm("Are you sure you want to undo the round resolution and revert team totals?")) return;
+
+  db.ref("quizState/lastRoundResolutionSnapshot").once("value", (snap) => {
+    const backup = snap.val();
+    if (!backup) {
+      alert("No round resolution snapshot found to undo!");
+      return;
+    }
+
+    db.ref("quizState").update({
+      teams: backup.teams,
+      currentStage: backup.currentStage,
+      lastRoundResolutionSnapshot: null
+    }, (err) => {
+      if (!err) alert("Round resolution reverted! Returned to Answer Reveal stage.");
+    });
+  });
+}
 
     // ==========================================
     // 7. SETUP & CONFIGURATION ENGINE
