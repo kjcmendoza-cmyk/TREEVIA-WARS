@@ -711,7 +711,55 @@ function updateWorkflowControlState() {
     // ==========================================
     // 5. INSTANT SCORE MATRIX LOGIC
     // ==========================================
-    function renderScoreMatrix() {
+
+// Calculates podium placements and flags  teams competing for top ranks
+// Calculates podium placements and flags tied teams competing for top ranks
+function calculatePlacements(teams) {
+  const placements = {};
+  const teamIds = Object.keys(teams || {});
+  if (teamIds.length === 0) return placements;
+
+  // Group team IDs by totalScore
+  const scoreGroups = {};
+  teamIds.forEach(id => {
+    const score = teams[id].totalScore || 0;
+    if (!scoreGroups[score]) scoreGroups[score] = [];
+    scoreGroups[score].push(id);
+  });
+
+  // Sort unique scores in descending order
+  const sortedScores = Object.keys(scoreGroups).map(Number).sort((a, b) => b - a);
+
+  let currentRank = 1;
+  sortedScores.forEach(score => {
+    const group = scoreGroups[score];
+    const groupSize = group.length;
+
+    if (groupSize > 1) {
+      // Tied group: ONLY mark as (Tiebreaker) if it affects the podium (ranks 1 to 3)
+      group.forEach(id => {
+        if (currentRank <= 3) {
+          placements[id] = "(Tiebreaker)";
+        } else {
+          placements[id] = `${currentRank}th Place`;
+        }
+      });
+    } else {
+      // Unique rank (tie broken or no tie)
+      const id = group[0];
+      if (currentRank === 1) placements[id] = "🥇 1st Place";
+      else if (currentRank === 2) placements[id] = "🥈 2nd Place";
+      else if (currentRank === 3) placements[id] = "🥉 3rd Place";
+      else placements[id] = `${currentRank}th Place`;
+    }
+
+    currentRank += groupSize;
+  });
+
+  return placements;
+}
+
+function renderScoreMatrix() {
   const tbody = document.getElementById("score-matrix-body");
   tbody.innerHTML = "";
 
@@ -726,14 +774,48 @@ function updateWorkflowControlState() {
     scoreCounts[score] = (scoreCounts[score] || 0) + 1;
   });
 
-  // Clincher buttons are enabled ONLY during STANDINGS or PODIUM stages when a team is tied
+  // Clincher buttons are enabled ONLY during STANDINGS or PODIUM stages
   const isStandingsOrPodium = (stage === "STANDINGS" || stage === "PODIUM");
+
+  // Track globally awarded clincher points across all teams
+  const has10 = Object.values(teams).some(t => (t.tiebreakerScore || 0) >= 10);
+  const has5  = Object.values(teams).some(t => ((t.tiebreakerScore || 0) % 10) >= 5);
+  const has1  = Object.values(teams).some(t => ((t.tiebreakerScore || 0) % 5) >= 1);
+
+  // Compute live placements
+  const placements = calculatePlacements(teams);
 
   teamIds.forEach(id => {
     const team = teams[id];
     const teamScore = team.totalScore || 0;
     const isTied = scoreCounts[teamScore] > 1;
-    const canUseClincher = isStandingsOrPodium && isTied;
+
+    // Count teams with strictly higher totalScore to determine tie rank
+    const higherTeamsCount = Object.values(teams).filter(t => (t.totalScore || 0) > teamScore).length;
+
+    // Sequential clincher locking rule logic (+10 -> +5 -> +1)
+    let allow10 = false;
+    let allow5 = false;
+    let allow1 = false;
+
+    if (isStandingsOrPodium && isTied) {
+      if (higherTeamsCount === 0) {
+        // Tied for 1st Place rank
+        if (!has10) allow10 = true;
+        else if (!has5) allow5 = true;
+        else if (!has1) allow1 = true;
+      } else if (higherTeamsCount === 1) {
+        // Tied for 2nd Place rank
+        if (!has5) allow5 = true;
+        else if (!has1) allow1 = true;
+      } else if (higherTeamsCount >= 2) {
+        // Tied for 3rd Place rank
+        if (!has1) allow1 = true;
+      }
+    }
+
+    const placementLabel = placements[id] || "";
+    const isTiebreakerNeeded = placementLabel === "(Tiebreaker)";
 
     const row = document.createElement("tr");
     
@@ -744,32 +826,35 @@ function updateWorkflowControlState() {
           onclick="roundCheckedScores['${id}'] = this.checked" 
           class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-purple focus:ring-brand-purple" />
       </td>
-      <td class="py-2.5 px-3 font-semibold text-white">${team.name}</td>
+      <td class="py-2.5 px-3 font-semibold text-white">
+        <div>${team.name}</div>
+        ${placementLabel ? `<div class="text-xs font-bold ${isTiebreakerNeeded ? 'text-amber-400 animate-pulse' : 'text-slate-400'}">${placementLabel}</div>` : ''}
+      </td>
       <td class="py-2.5 px-3 text-right font-mono text-slate-300">${team.roundScore || 0} Pts</td>
       <td class="py-2.5 px-3 text-right font-mono text-rose-400 font-bold">${team.sabotagesReceived || 0}/3</td>
       <td class="py-2.5 px-3 text-right">
         <div class="flex items-center justify-end space-x-1">
           <button onclick="awardClincherPoint('${id}', 10, '1st Place')" 
-            ${!canUseClincher ? 'disabled' : ''} 
+            ${!allow10 ? 'disabled' : ''} 
             title="Award +10 Pts for 1st Place Battle"
             class="px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition ${
-              canUseClincher ? 'hover:bg-amber-500/40 cursor-pointer' : 'opacity-30 cursor-not-allowed pointer-events-none'
+              allow10 ? 'hover:bg-amber-500/40 cursor-pointer shadow-md ring-1 ring-amber-400' : 'opacity-20 cursor-not-allowed pointer-events-none'
             }">
             🥇 +10
           </button>
           <button onclick="awardClincherPoint('${id}', 5, '2nd Place')" 
-            ${!canUseClincher ? 'disabled' : ''} 
+            ${!allow5 ? 'disabled' : ''} 
             title="Award +5 Pts for 2nd Place Battle"
             class="px-2 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-bold transition ${
-              canUseClincher ? 'hover:bg-indigo-500/40 cursor-pointer' : 'opacity-30 cursor-not-allowed pointer-events-none'
+              allow5 ? 'hover:bg-indigo-500/40 cursor-pointer shadow-md ring-1 ring-indigo-400' : 'opacity-20 cursor-not-allowed pointer-events-none'
             }">
             🥈 +5
           </button>
           <button onclick="awardClincherPoint('${id}', 1, '3rd Place')" 
-            ${!canUseClincher ? 'disabled' : ''} 
+            ${!allow1 ? 'disabled' : ''} 
             title="Award +1 Pt for 3rd Place Battle"
             class="px-2 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold transition ${
-              canUseClincher ? 'hover:bg-emerald-500/40 cursor-pointer' : 'opacity-30 cursor-not-allowed pointer-events-none'
+              allow1 ? 'hover:bg-emerald-500/40 cursor-pointer shadow-md ring-1 ring-emerald-400' : 'opacity-20 cursor-not-allowed pointer-events-none'
             }">
             🥉 +1
           </button>
