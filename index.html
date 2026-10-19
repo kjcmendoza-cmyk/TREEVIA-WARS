@@ -546,9 +546,36 @@
           </button>
         </div>
 
-      </div>
-    </div>
-  </div>
+        <!-- Card 4: Sudden-Death Clincher -->
+        <div class="glass-panel hud-card p-5 border border-fuse-border space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-black text-white text-base font-display">Sudden-Death Clincher</h4>
+              <p class="text-xs text-amber-400 font-bold">Tiebreaker Victory Award</p>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-amber-500/20 text-amber-400 border border-amber-500/40">
+              Floor Action
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Award tiebreaker points if your table answers first during sudden-death tiebreakers.
+          </p>
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <button onclick="awardClincherFaci(10, '1st Place')" class="py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-black transition">
+              🥇 +10 (1st)
+            </button>
+            <button onclick="awardClincherFaci(5, '2nd Place')" class="py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-black transition">
+              🥈 +5 (2nd)
+            </button>
+            <button onclick="awardClincherFaci(1, '3rd Place')" class="py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-black transition">
+              🥉 +1 (3rd)
+            </button>
+          </div>
+        </div>
+
+      </div> <!-- Closes #faci-step-deck -->
+    </div> <!-- Closes parent scroll container -->
+  </div> <!-- Closes #facilitator-container -->
 
   <!-- MODAL: POWER-UP DEPLOYMENT CONFIRMATION -->
   <div id="powerup-confirm-modal" class="hidden fixed inset-0 z-[60] bg-black/85 backdrop-blur-md flex justify-center items-center p-4">
@@ -1155,6 +1182,32 @@
       lucide.createIcons();
       renderProjectorUI();
     };
+    function awardClincherFaci(points, rankLabel) {
+  if (!selectedTableId) {
+    showToast("NO TABLE ASSIGNED", "Please select your table first.", "rose", "alert-circle");
+    return;
+  }
+
+  const teamName = gameState.teams[selectedTableId]?.name || selectedTableId;
+
+  if (!confirm(`Award +${points} pts (${rankLabel} Clincher) to ${teamName}?`)) return;
+
+  if (isFirebaseConnected && db) {
+    db.ref(`quizState/teams/${selectedTableId}`).transaction(team => {
+      if (team) {
+        team.tiebreakerScore = (team.tiebreakerScore || 0) + points;
+        team.totalScore = (team.totalScore || 0) + points;
+      }
+      return team;
+    }, (err) => {
+      if (!err) {
+        showToast("CLINCHER AWARDED", `Added +${points} pts (${rankLabel}) to ${teamName}!`, "yellow", "trophy");
+      } else {
+        showToast("ERROR", err.message, "rose", "alert-circle");
+      }
+    });
+  }
+}
   </script>
 </body>
 </html>
