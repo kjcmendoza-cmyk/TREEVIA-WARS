@@ -711,25 +711,25 @@ function updateWorkflowControlState() {
     // 5. INSTANT SCORE MATRIX LOGIC
     // ==========================================
     function renderScoreMatrix() {
-      const tbody = document.getElementById("score-matrix-body");
-      tbody.innerHTML = "";
+  const tbody = document.getElementById("score-matrix-body");
+  tbody.innerHTML = "";
 
-      const teams = gameState.teams || {};
-      Object.keys(teams).forEach(id => {
-        const team = teams[id];
-        const row = document.createElement("tr");
-        
-        row.innerHTML = `
-          <td class="py-2.5 px-3">
-            <input type="checkbox" id="chk-${id}" ${roundCheckedScores[id] ? 'checked' : ''} class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-purple focus:ring-brand-purple" />
-          </td>
-          <td class="py-2.5 px-3 font-semibold text-white">${team.name}</td>
-          <td class="py-2.5 px-3 text-right font-mono text-slate-300">${team.roundScore || 0} Pts</td>
-          <td class="py-2.5 px-3 text-right font-mono text-rose-400 font-bold">${team.sabotagesReceived || 0}/3</td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
+  const teams = gameState.teams || {};
+  Object.keys(teams).forEach(id => {
+    const team = teams[id];
+    const row = document.createElement("tr");
+    
+    row.innerHTML = `
+      <td class="py-2.5 px-3">
+        <input type="checkbox" id="chk-${id}" ${roundCheckedScores[id] ? 'checked' : ''} onchange="roundCheckedScores['${id}'] = this.checked" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-brand-purple focus:ring-brand-purple" />
+      </td>
+      <td class="py-2.5 px-3 font-semibold text-white">${team.name}</td>
+      <td class="py-2.5 px-3 text-right font-mono text-slate-300">${team.roundScore || 0} Pts</td>
+      <td class="py-2.5 px-3 text-right font-mono text-rose-400 font-bold">${team.sabotagesReceived || 0}/3</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
 
     function saveQuestionScores() {
   const teams = gameState.teams || {};
@@ -737,26 +737,28 @@ function updateWorkflowControlState() {
 
   // 1. Save snapshot of current teams state before applying new scores
   const backupTeams = JSON.parse(JSON.stringify(teams));
+  const updates = {};
 
   Object.keys(teams).forEach(id => {
     const chk = document.getElementById(`chk-${id}`);
-    if (chk?.checked) {
-      db.ref(`quizState/teams/${id}/roundScore`).transaction(val => (val || 0) + points);
+    const isChecked = chk ? chk.checked : !!roundCheckedScores[id];
+    if (isChecked) {
+      const currentRoundScore = teams[id].roundScore || 0;
+      updates[`quizState/teams/${id}/roundScore`] = currentRoundScore + points;
     }
   });
 
-  roundCheckedScores = {};
-  Object.keys(teams).forEach(id => {
-    const chk = document.getElementById(`chk-${id}`);
-    if (chk) chk.checked = false;
-  });
+  updates["quizState/scoresLockedForActiveQ"] = true;
+  updates["quizState/lastScoreSnapshot"] = backupTeams;
 
-  // 2. Store snapshot and lock state in Firebase
-  db.ref("quizState").update({
-    scoresLockedForActiveQ: true,
-    lastScoreSnapshot: backupTeams
-  }, (err) => {
-    if (!err) alert("Question scores locked! Click 'Next Q ►' to proceed.");
+  // 2. Perform atomic single-batch update
+  db.ref().update(updates, (err) => {
+    if (!err) {
+      roundCheckedScores = {};
+      alert("Question scores locked! Click 'Next Q ►' to proceed.");
+    } else {
+      alert("Error locking question scores: " + err.message);
+    }
   });
 }
 
