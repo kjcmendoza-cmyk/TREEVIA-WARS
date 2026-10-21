@@ -153,21 +153,10 @@ if (data.peerTutoring && Array.isArray(data.peerTutoring)) {
                 if (modalHours && data.sys1.hours) modalHours.textContent = data.sys1.hours;
 
                 const studentUrl = document.getElementById('sys1-display-student-url');
-                if (studentUrl && data.sys1.studentUrl) studentUrl.href = data.sys1.studentUrl;
-            const sys1Rules = document.getElementById('sys1-display-rules');
-if (sys1Rules && data.sys1.guidelinesContent) {
-    const lines = data.sys1.guidelinesContent.split('\n').filter(l => l.trim().length > 0);
-    sys1Rules.innerHTML = lines.map((line, i) => {
-        const num = String(i + 1).padStart(2, '0');
-        const cleanLine = line.replace(/^[0-9]+\.\s*/, '');
-        const formatted = cleanLine.replace(/^([^:]+:)/, '<strong class="text-fusee-cyan font-extrabold tracking-wide mr-1">$1</strong>');
-        return `
-            <li class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start gap-2.5">
-                <span class="text-fusee-cyan font-bold font-techno text-[10px] bg-fusee-cyan/15 px-2 py-0.5 rounded-lg border border-fusee-cyan/40 flex-shrink-0 mt-0.5">${num}</span>
-                <div class="text-slate-100 text-xs leading-relaxed">${formatted}</div>
-            </li>
-        `;
-    }).join('');
+                // System 1 Guidelines Display
+const sys1Rules = document.getElementById('sys1-display-rules');
+if (sys1Rules && data.sys1?.guidelinesContent) {
+    sys1Rules.innerHTML = data.sys1.guidelinesContent;
 }
 }
 
@@ -185,19 +174,8 @@ if (sys1Rules && data.sys1.guidelinesContent) {
                 const url = document.getElementById('sys2-display-url');
                 if (url && data.sys2.url) url.href = data.sys2.url;
                 const sys2Rules = document.getElementById('sys2-display-rules');
-if (sys2Rules && data.sys2.policiesContent) {
-    const lines = data.sys2.policiesContent.split('\n').filter(l => l.trim().length > 0);
-    sys2Rules.innerHTML = lines.map((line, i) => {
-        const num = String(i + 1).padStart(2, '0');
-        const cleanLine = line.replace(/^[0-9]+\.\s*/, '');
-        const formatted = cleanLine.replace(/^([^:]+:)/, '<strong class="text-fusee-magenta font-extrabold tracking-wide mr-1">$1</strong>');
-        return `
-            <li class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start gap-2.5">
-                <span class="text-fusee-magenta font-bold font-techno text-[10px] bg-fusee-magenta/15 px-2 py-0.5 rounded-lg border border-fusee-magenta/40 flex-shrink-0 mt-0.5">${num}</span>
-                <div class="text-slate-100 text-xs leading-relaxed">${formatted}</div>
-            </li>
-        `;
-    }).join('');
+if (sys2Rules && data.sys2?.policiesContent) {
+    sys2Rules.innerHTML = data.sys2.policiesContent;
 }
 }
             // 5. System 03 Data Sync
@@ -212,19 +190,8 @@ if (sys2Rules && data.sys2.policiesContent) {
                 if (modalHours && data.sys3.hours) modalHours.textContent = data.sys3.hours;
 
                const sys3Rules = document.getElementById('sys3-display-rules');
-if (sys3Rules && data.sys3.guidelinesContent) {
-    const lines = data.sys3.guidelinesContent.split('\n').filter(l => l.trim().length > 0);
-    sys3Rules.innerHTML = lines.map((line, i) => {
-        const num = String(i + 1).padStart(2, '0');
-        const cleanLine = line.replace(/^[0-9]+\.\s*/, '');
-        const formatted = cleanLine.replace(/^([^:]+:)/, '<strong class="text-fusee-yellow font-extrabold tracking-wide mr-1">$1</strong>');
-        return `
-            <li class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-start gap-2.5">
-                <span class="text-fusee-yellow font-bold font-techno text-[10px] bg-fusee-yellow/15 px-2 py-0.5 rounded-lg border border-fusee-yellow/40 flex-shrink-0 mt-0.5">${num}</span>
-                <div class="text-slate-100 text-xs leading-relaxed">${formatted}</div>
-            </li>
-        `;
-    }).join('');
+if (sys3Rules && data.sys3?.guidelinesContent) {
+    sys3Rules.innerHTML = data.sys3.guidelinesContent;
 }
 }
             if (typeof window.refreshAllSystemStatuses === 'function') {
