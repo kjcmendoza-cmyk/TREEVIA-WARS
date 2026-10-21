@@ -1314,12 +1314,12 @@ window.addMerchRow = function(
                 
                 <!-- Rich Formatting Toolbar -->
                 <div class="flex items-center gap-1 p-1.5 rounded-t-xl bg-slate-950 border border-slate-700 border-b-0 text-slate-300 flex-wrap">
-                    <button type="button" onclick="formatEditorText('bold')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Bold"><i class="fa-solid fa-bold"></i></button>
-                    <button type="button" onclick="formatEditorText('italic')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Italic"><i class="fa-solid fa-italic"></i></button>
-                    <button type="button" onclick="formatEditorText('underline')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Underline"><i class="fa-solid fa-underline"></i></button>
+                    <button type="button" onmousedown="event.preventDefault()" onclick="formatEditorText('bold')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Bold"><i class="fa-solid fa-bold"></i></button>
+                    <button type="button" onmousedown="event.preventDefault()" onclick="formatEditorText('italic')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Italic"><i class="fa-solid fa-italic"></i></button>
+                    <button type="button" onmousedown="event.preventDefault()" onclick="formatEditorText('underline')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Underline"><i class="fa-solid fa-underline"></i></button>
                     <div class="h-3 w-[1px] bg-slate-700 mx-1"></div>
-                    <button type="button" onclick="formatEditorText('insertUnorderedList')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button>
-                    <button type="button" onclick="formatEditorText('insertOrderedList')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Numbered List"><i class="fa-solid fa-list-ol"></i></button>
+                    <button type="button" onmousedown="event.preventDefault()" onclick="formatEditorText('insertUnorderedList')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button>
+                    <button type="button" onmousedown="event.preventDefault()" onclick="formatEditorText('insertOrderedList')" class="p-1 hover:bg-slate-800 hover:text-fusee-cyan rounded text-xs w-6 h-6 flex items-center justify-center transition" title="Numbered List"><i class="fa-solid fa-list-ol"></i></button>
                 </div>
 
                 <!-- Rich Text Editable Area -->
@@ -1672,7 +1672,11 @@ function gatherFormData() {
     const labPolicies = [];
 document.querySelectorAll('.policy-item-row').forEach(row => {
     const title = row.querySelector('.policy-title-input')?.value?.trim() || '';
-    const content = row.querySelector('.policy-content-input')?.innerHTML?.trim() || '';
+    let content = row.querySelector('.policy-content-input')?.innerHTML?.trim() || '';
+    
+    // Clean residual empty tags from contenteditable
+    if (content === '<br>' || content === '<div><br></div>') content = '';
+
     if (title || content) labPolicies.push({ title, content });
 });
 
