@@ -128,20 +128,21 @@
   <!-- INSERT HERE -->
   <div class="grid grid-cols-2 gap-2 pt-2">
   <button id="btn-prev-q" type="button" onclick="navigateQuestion(-1)" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs border border-slate-700 transition">
-    ◄ Previous Q
-  </button>
-  <button id="btn-next-q" type="button" onclick="navigateQuestion(1)" class="py-2 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs transition">
-    Next Q ►
-  </button>
+  ◄ Previous Q
+</button>
+<button id="btn-next-q" type="button" onclick="navigateQuestion(1)" class="py-2 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs transition">
+  Next Q ►
+</button>
 </div>
 </div>
 
-            <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-1 text-xs">
-              <p><span class="text-slate-400">Category:</span> <strong id="admin-q-category" class="text-white">-</strong></p>
-              <p><span class="text-slate-400">Points Value:</span> <strong id="admin-q-points" class="text-brand-yellow">-</strong></p>
-              <p><span class="text-slate-400">Answer:</span> <strong id="admin-q-answer" class="text-emerald-400">-</strong></p>
-            </div>
-          </div>
+<div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-1 text-xs">
+  <p><span class="text-slate-400">Category:</span> <strong id="admin-q-category" class="text-white">-</strong></p>
+  <p><span class="text-slate-400">Difficulty:</span> <strong id="admin-q-difficulty" class="text-amber-400">-</strong></p>
+  <p><span class="text-slate-400">Points Value:</span> <strong id="admin-q-points" class="text-brand-yellow">-</strong></p>
+  <p><span class="text-slate-400">Answer:</span> <strong id="admin-q-answer" class="text-emerald-400">-</strong></p>
+</div>
+</div>
 
           <!-- Live Timer Console -->
           <div class="glass-panel p-5 rounded-2xl border border-slate-800 text-center space-y-4">
@@ -261,6 +262,7 @@
           <th class="py-2 px-3">Round</th>
           <th class="py-2 px-3">Q#</th>
           <th class="py-2 px-3">Category</th>
+          <th class="py-2 px-3">Difficulty</th>
           <th class="py-2 px-3">Prompt Preview</th>
           <th class="py-2 px-3">Answer</th>
           <th class="py-2 px-3 text-right">Pts</th>
@@ -325,16 +327,24 @@
               <input type="text" id="cfg-q-ans" placeholder="e.g., 220 Volts" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:ring-1 focus:ring-brand-purple outline-none" />
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-xs text-slate-400 block mb-1">Point Value</label>
-                <input type="number" id="cfg-q-pts" min="1" value="10" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
-              </div>
-              <div>
-                <label class="text-xs text-slate-400 block mb-1">Timer (Seconds)</label>
-                <input type="number" id="cfg-q-timer" min="5" value="45" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
-              </div>
-            </div>
+            <div class="grid grid-cols-3 gap-3">
+  <div>
+    <label class="text-xs text-slate-400 block mb-1">Difficulty</label>
+    <select id="cfg-q-difficulty" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:ring-1 focus:ring-brand-purple outline-none">
+      <option value="Easy">Easy</option>
+      <option value="Medium" selected>Medium</option>
+      <option value="Hard">Hard</option>
+    </select>
+  </div>
+  <div>
+    <label class="text-xs text-slate-400 block mb-1">Point Value</label>
+    <input type="number" id="cfg-q-pts" min="1" value="10" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+  </div>
+  <div>
+    <label class="text-xs text-slate-400 block mb-1">Timer (Seconds)</label>
+    <input type="number" id="cfg-q-timer" min="5" value="45" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+  </div>
+</div>
 
             <div>
               <label class="text-xs text-slate-400 block mb-1">Diagram / Image URL (Optional)</label>
@@ -498,7 +508,6 @@ db.ref("quizState").on("value", (snapshot) => {
   
   select.innerHTML = `<option value="">-- Select Active Question --</option>`;
 
-  // Group questions by round
   const roundMap = {};
   questions.forEach((q, idx) => {
     const roundNum = q.round || 1;
@@ -506,11 +515,8 @@ db.ref("quizState").on("value", (snapshot) => {
     roundMap[roundNum].push({ ...q, originalIndex: idx });
   });
 
-  // Build grouped options
   Object.keys(roundMap).sort((a, b) => a - b).forEach(round => {
     const optgroup = document.createElement("optgroup");
-    
-    // Extract unique category title(s) for this round
     const categories = [...new Set(roundMap[round].map(q => q.category).filter(Boolean))].join(", ");
     const categoryLabel = categories ? ` — ${categories}` : "";
     
@@ -520,7 +526,8 @@ db.ref("quizState").on("value", (snapshot) => {
       const opt = document.createElement("option");
       opt.value = q.originalIndex;
       const promptSnippet = q.text ? ` — "${q.text.slice(0, 35)}..."` : "";
-      opt.innerText = `Q${q.number}: ${q.category}${promptSnippet} (${q.points} pts)`;
+      const diffTag = q.difficulty ? ` [${q.difficulty}]` : "";
+      opt.innerText = `Q${q.number}: ${q.category}${diffTag}${promptSnippet} (${q.points} pts)`;
       
       if (gameState.activeQuestionIndex === q.originalIndex) {
         opt.selected = true;
@@ -531,10 +538,10 @@ db.ref("quizState").on("value", (snapshot) => {
     select.appendChild(optgroup);
   });
 
-  // Update question details display
   if (gameState.activeQuestionIndex !== undefined && questions[gameState.activeQuestionIndex]) {
     const q = questions[gameState.activeQuestionIndex];
     document.getElementById("admin-q-category").innerText = q.category;
+    document.getElementById("admin-q-difficulty").innerText = q.difficulty || "Medium";
     document.getElementById("admin-q-points").innerText = `${q.points} Pts`;
     document.getElementById("admin-q-answer").innerText = q.answer;
   }
@@ -550,13 +557,14 @@ db.ref("quizState").on("value", (snapshot) => {
     currentRound: q.round,
     questionNumber: q.number,
     currentCategory: q.category,
+    currentDifficulty: q.difficulty || "Medium",
     currentPoints: q.points,
     currentQuestionText: q.text,
     currentAnswerText: q.answer,
     currentImageUrl: q.imageUrl || "",
     timerRemaining: q.timerDuration || 30,
     defaultTimerDuration: q.timerDuration || 30,
-    scoresLockedForActiveQ: false // Reset score lock flag
+    scoresLockedForActiveQ: false
   });
 }
 
@@ -1119,128 +1127,132 @@ function undoRoundResolution() {
     }
 
     function saveQuestion(e) {
-      e.preventDefault();
+  e.preventDefault();
 
-      const editIdx = parseInt(document.getElementById("cfg-q-edit-index").value);
-      const roundVal = parseInt(document.getElementById("cfg-q-round").value);
-      const catVal = document.getElementById("cfg-q-cat").value;
-      const ptsVal = parseInt(document.getElementById("cfg-q-pts").value);
-      const timerVal = parseInt(document.getElementById("cfg-q-timer").value);
+  const editIdx = parseInt(document.getElementById("cfg-q-edit-index").value);
+  const roundVal = parseInt(document.getElementById("cfg-q-round").value);
+  const catVal = document.getElementById("cfg-q-cat").value;
+  const diffVal = document.getElementById("cfg-q-difficulty").value;
+  const ptsVal = parseInt(document.getElementById("cfg-q-pts").value);
+  const timerVal = parseInt(document.getElementById("cfg-q-timer").value);
 
-      const newQ = {
-        round: roundVal,
-        number: parseInt(document.getElementById("cfg-q-num").value),
-        category: catVal,
-        text: document.getElementById("cfg-q-text").value,
-        answer: document.getElementById("cfg-q-ans").value,
-        points: ptsVal,
-        timerDuration: timerVal,
-        imageUrl: document.getElementById("cfg-q-img").value
-      };
+  const newQ = {
+    round: roundVal,
+    number: parseInt(document.getElementById("cfg-q-num").value),
+    category: catVal,
+    difficulty: diffVal,
+    text: document.getElementById("cfg-q-text").value,
+    answer: document.getElementById("cfg-q-ans").value,
+    points: ptsVal,
+    timerDuration: timerVal,
+    imageUrl: document.getElementById("cfg-q-img").value
+  };
 
-      const bank = gameState.questionBank || [];
+  const bank = gameState.questionBank || [];
 
-      if (editIdx >= 0 && editIdx < bank.length) {
-        // Update existing question
-        bank[editIdx] = newQ;
-      } else {
-        // Add new question
-        bank.push(newQ);
-      }
+  if (editIdx >= 0 && editIdx < bank.length) {
+    bank[editIdx] = newQ;
+  } else {
+    bank.push(newQ);
+  }
 
-      db.ref("quizState/questionBank").set(bank, () => {
-        // Preserve Round, Category, Points, and Timer settings after save
-        document.getElementById("cfg-q-text").value = "";
-        document.getElementById("cfg-q-ans").value = "";
-        document.getElementById("cfg-q-img").value = "";
+  db.ref("quizState/questionBank").set(bank, () => {
+    document.getElementById("cfg-q-text").value = "";
+    document.getElementById("cfg-q-ans").value = "";
+    document.getElementById("cfg-q-img").value = "";
 
-        // Reset edit mode state
-        cancelEdit(false);
+    cancelEdit(false);
 
-        // Keep round and category retained
-        document.getElementById("cfg-q-round").value = roundVal;
-        document.getElementById("cfg-q-cat").value = catVal;
-        document.getElementById("cfg-q-pts").value = ptsVal;
-        document.getElementById("cfg-q-timer").value = timerVal;
+    document.getElementById("cfg-q-round").value = roundVal;
+    document.getElementById("cfg-q-cat").value = catVal;
+    document.getElementById("cfg-q-difficulty").value = diffVal;
+    document.getElementById("cfg-q-pts").value = ptsVal;
+    document.getElementById("cfg-q-timer").value = timerVal;
 
-        // Automatically set the question number to the next sequential question
-        autoSetQuestionNumber();
-      });
-    }
+    autoSetQuestionNumber();
+  });
+}
 
     function editQuestion(index) {
-      const bank = gameState.questionBank || [];
-      const q = bank[index];
-      if (!q) return;
+  const bank = gameState.questionBank || [];
+  const q = bank[index];
+  if (!q) return;
 
-      document.getElementById("cfg-q-edit-index").value = index;
-      document.getElementById("cfg-q-round").value = q.round || 1;
-      document.getElementById("cfg-q-num").value = q.number || 1;
-      document.getElementById("cfg-q-cat").value = q.category || "";
-      document.getElementById("cfg-q-text").value = q.text || "";
-      document.getElementById("cfg-q-ans").value = q.answer || "";
-      document.getElementById("cfg-q-pts").value = q.points || 10;
-      document.getElementById("cfg-q-timer").value = q.timerDuration || 45;
-      document.getElementById("cfg-q-img").value = q.imageUrl || "";
+  document.getElementById("cfg-q-edit-index").value = index;
+  document.getElementById("cfg-q-round").value = q.round || 1;
+  document.getElementById("cfg-q-num").value = q.number || 1;
+  document.getElementById("cfg-q-cat").value = q.category || "";
+  document.getElementById("cfg-q-difficulty").value = q.difficulty || "Medium";
+  document.getElementById("cfg-q-text").value = q.text || "";
+  document.getElementById("cfg-q-ans").value = q.answer || "";
+  document.getElementById("cfg-q-pts").value = q.points || 10;
+  document.getElementById("cfg-q-timer").value = q.timerDuration || 45;
+  document.getElementById("cfg-q-img").value = q.imageUrl || "";
 
-      // Visual state for Edit Mode
-      document.getElementById("form-title").firstElementChild.innerText = "✏️ Edit Question";
-      const badge = document.getElementById("form-mode-badge");
-      badge.innerText = `Editing Index #${index + 1}`;
-      badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-brand-yellow/20 text-brand-yellow border border-brand-yellow/30";
+  document.getElementById("form-title").firstElementChild.innerText = "✏️ Edit Question";
+  const badge = document.getElementById("form-mode-badge");
+  badge.innerText = `Editing Index #${index + 1}`;
+  badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-brand-yellow/20 text-brand-yellow border border-brand-yellow/30";
 
-      const submitBtn = document.getElementById("cfg-q-submit-btn");
-      submitBtn.innerText = "💾 Update Question";
-      submitBtn.className = "w-full py-2.5 bg-brand-yellow hover:bg-brand-yellow/90 text-slate-950 rounded-xl font-black text-xs transition shadow-md";
+  const submitBtn = document.getElementById("cfg-q-submit-btn");
+  submitBtn.innerText = "💾 Update Question";
+  submitBtn.className = "w-full py-2.5 bg-brand-yellow hover:bg-brand-yellow/90 text-slate-950 rounded-xl font-black text-xs transition shadow-md";
 
-      document.getElementById("btn-cancel-edit").classList.remove("hidden");
-    }
+  document.getElementById("btn-cancel-edit").classList.remove("hidden");
+}
 
-    function cancelEdit(resetNumbering = true) {
-      document.getElementById("cfg-q-edit-index").value = "-1";
+function cancelEdit(resetNumbering = true) {
+  document.getElementById("cfg-q-edit-index").value = "-1";
 
-      document.getElementById("form-title").firstElementChild.innerText = "➕ Add Question";
-      const badge = document.getElementById("form-mode-badge");
-      badge.innerText = "New Entry";
-      badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+  document.getElementById("form-title").firstElementChild.innerText = "➕ Add Question";
+  const badge = document.getElementById("form-mode-badge");
+  badge.innerText = "New Entry";
+  badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
 
-      const submitBtn = document.getElementById("cfg-q-submit-btn");
-      submitBtn.innerText = "➕ Save Question to Database";
-      submitBtn.className = "w-full py-2.5 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs transition shadow-md";
+  const submitBtn = document.getElementById("cfg-q-submit-btn");
+  submitBtn.innerText = "➕ Save Question to Database";
+  submitBtn.className = "w-full py-2.5 bg-brand-purple hover:bg-brand-purple/90 text-white rounded-xl font-bold text-xs transition shadow-md";
 
-      document.getElementById("btn-cancel-edit").classList.add("hidden");
+  document.getElementById("btn-cancel-edit").classList.add("hidden");
 
-      if (resetNumbering) {
-        document.getElementById("question-form").reset();
-        autoSetQuestionNumber();
-      }
-    }
+  if (resetNumbering) {
+    document.getElementById("question-form").reset();
+    document.getElementById("cfg-q-difficulty").value = "Medium";
+    autoSetQuestionNumber();
+  }
+}
 
     function renderQuestionBankTable() {
-      const tbody = document.getElementById("question-bank-table-body");
-      if (!tbody) return;
-      tbody.innerHTML = "";
+  const tbody = document.getElementById("question-bank-table-body");
+  if (!tbody) return;
+  tbody.innerHTML = "";
 
-      const bank = gameState.questionBank || [];
-      bank.forEach((q, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td class="py-2 px-3 font-bold text-brand-purple">R${q.round}</td>
-          <td class="py-2 px-3 font-bold text-white">Q${q.number}</td>
-          <td class="py-2 px-3 text-slate-300">${q.category}</td>
-          <td class="py-2 px-3 text-slate-400 truncate max-w-xs">${q.text}</td>
-          <td class="py-2 px-3 text-emerald-400 font-mono">${q.answer}</td>
-          <td class="py-2 px-3 text-right font-bold text-brand-yellow">${q.points}</td>
-          <td class="py-2 px-3 text-right space-x-2">
-            <button onclick="editQuestion(${index})" class="text-brand-purple hover:text-indigo-300 font-bold">Edit</button>
-            <button onclick="deleteQuestion(${index})" class="text-rose-400 hover:text-rose-300 font-bold">Delete</button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
+  const bank = gameState.questionBank || [];
+  bank.forEach((q, index) => {
+    const diff = q.difficulty || "Medium";
+    let diffClass = "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+    if (diff === "Easy") diffClass = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+    if (diff === "Hard") diffClass = "bg-rose-500/20 text-rose-400 border border-rose-500/30";
 
-      renderQuickRoundPills();
-    }
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="py-2 px-3 font-bold text-brand-purple">R${q.round}</td>
+      <td class="py-2 px-3 font-bold text-white">Q${q.number}</td>
+      <td class="py-2 px-3 text-slate-300">${q.category}</td>
+      <td class="py-2 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${diffClass}">${diff}</span></td>
+      <td class="py-2 px-3 text-slate-400 truncate max-w-xs">${q.text}</td>
+      <td class="py-2 px-3 text-emerald-400 font-mono">${q.answer}</td>
+      <td class="py-2 px-3 text-right font-bold text-brand-yellow">${q.points}</td>
+      <td class="py-2 px-3 text-right space-x-2">
+        <button onclick="editQuestion(${index})" class="text-brand-purple hover:text-indigo-300 font-bold">Edit</button>
+        <button onclick="deleteQuestion(${index})" class="text-rose-400 hover:text-rose-300 font-bold">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  renderQuickRoundPills();
+}
 
     function deleteQuestion(index) {
       if (!confirm("Are you sure you want to delete this question?")) return;
