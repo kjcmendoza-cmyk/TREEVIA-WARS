@@ -1277,11 +1277,16 @@ function addTeam(e) {
 
   const teamId = "team_" + Date.now();
   db.ref(`quizState/teams/${teamId}`).set({
-    name: teamName,
-    totalScore: 0,
-    roundScore: 0,
-    sabotagesReceived: 0
-  }, (error) => {
+  name: teamName,
+  totalScore: 0,
+  roundScore: 0,
+  sabotagesReceived: 0,
+  powerUps: {
+    doublePointsCards: 1,
+    sabotageCards: 2,
+    shieldCards: 2
+  }
+}, (error) => {
     if (!error) {
       teamNameInput.value = "";
     } else {
@@ -1334,13 +1339,18 @@ function restartLiveGame() {
   // Reset scores, sabotages, and table claims for existing teams
   Object.keys(teams).forEach(id => {
     resetTeams[id] = {
-      ...teams[id],
-      totalScore: 0,
-      roundScore: 0,
-      sabotagesReceived: 0,
-      tiebreakerScore: 0,
-      claimedBy: null // <--- CLEARS ALL TABLE LOCKS IN FIREBASE
-    };
+  ...teams[id],
+  totalScore: 0,
+  roundScore: 0,
+  sabotagesReceived: 0,
+  tiebreakerScore: 0,
+  claimedBy: null, // <--- CLEARS ALL TABLE LOCKS IN FIREBASE
+  powerUps: {
+    doublePointsCards: 1,
+    sabotageCards: 2,
+    shieldCards: 2
+  }
+};
   });
 
   const bank = gameState.questionBank || [];

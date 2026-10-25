@@ -1647,20 +1647,135 @@ function confirmTableSelection() {
       document.getElementById("faci-current-round-text").innerText = `Active: Round ${round}`;
       document.getElementById("faci-sabotage-count-badge").innerText = `Sabotages Received: ${teamData.sabotagesReceived || 0}/3`;
 
-      const targetSelect = document.getElementById("sabotage-target-select");
-      targetSelect.innerHTML = `<option value="">-- Select Target Team --</option>`;
-      
-      Object.keys(gameState.teams).forEach(id => {
-        if (id !== selectedTableId) {
-          const t = gameState.teams[id];
-          const isCapped = (t.sabotagesReceived || 0) >= 3;
-          const opt = document.createElement("option");
-          opt.value = id;
-          opt.disabled = isCapped;
-          opt.innerText = `${t.name}${isCapped ? ' (CAPPED 3/3)' : ''}`;
-          targetSelect.appendChild(opt);
+      // 1. READ POWER-UP INVENTORY & ACTIVE PENDING STATUS
+      const powerUps = teamData.powerUps || {
+        doublePointsCards: 1,
+        sabotageCards: 2,
+        shieldCards: 2
+      };
+
+      const doubleCount = powerUps.doublePointsCards ?? 1;
+      const sabotageCount = powerUps.sabotageCards ?? 2;
+      const shieldCount = powerUps.shieldCards ?? 2;
+
+      const pendingRound = gameState.pendingPowerUps?.[`round_${round}`]?.[selectedTableId] || {};
+      const doubleActive = !!pendingRound.doublePoints;
+      const sabotageActive = !!pendingRound.sabotageTarget;
+      const shieldActive = !!pendingRound.shieldActive;
+
+      // 2. UPDATE DOUBLE POINTS (Step-Up Transformer)
+      const doubleBadge = document.getElementById("status-double-card");
+      const doubleBtn = document.getElementById("btn-activate-double");
+
+      if (doubleBadge) {
+        if (doubleActive) {
+          doubleBadge.innerText = "ACTIVE THIS ROUND";
+          doubleBadge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-fuse-yellow/20 text-fuse-yellow border border-fuse-yellow/40";
+        } else {
+          doubleBadge.innerText = `${doubleCount} Available`;
+          doubleBadge.className = doubleCount > 0
+            ? "px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-fuse-lime/20 text-fuse-lime border border-fuse-lime/40"
+            : "px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-slate-800 text-slate-500 border border-slate-700";
         }
-      });
+      }
+
+      if (doubleBtn) {
+        if (doubleActive) {
+          doubleBtn.disabled = true;
+          doubleBtn.innerText = "⚡ Active for Active Round";
+          doubleBtn.className = "w-full py-2.5 bg-fuse-yellow/10 text-fuse-yellow border border-fuse-yellow/30 rounded-xl text-xs font-black opacity-60 cursor-not-allowed";
+        } else if (doubleCount <= 0) {
+          doubleBtn.disabled = true;
+          doubleBtn.innerText = "No Cards Remaining";
+          doubleBtn.className = "w-full py-2.5 bg-slate-800/50 text-slate-500 border border-slate-700 rounded-xl text-xs font-black cursor-not-allowed";
+        } else {
+          doubleBtn.disabled = false;
+          doubleBtn.innerText = "Activate for Active Round";
+          doubleBtn.className = "w-full py-2.5 bg-fuse-yellow/20 hover:bg-fuse-yellow/30 text-fuse-yellow border border-fuse-yellow/40 rounded-xl text-xs font-black transition";
+        }
+      }
+
+      // 3. UPDATE SABOTAGE (Voltage Drop)
+      const sabotageBadge = document.getElementById("status-sabotage-card");
+      const sabotageBtn = document.getElementById("btn-activate-sabotage");
+      const targetSelect = document.getElementById("sabotage-target-select");
+
+      if (sabotageBadge) {
+        if (sabotageActive) {
+          sabotageBadge.innerText = "CAST THIS ROUND";
+          sabotageBadge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-rose-500/20 text-rose-400 border border-rose-500/40";
+        } else {
+          sabotageBadge.innerText = `${sabotageCount} Available`;
+          sabotageBadge.className = sabotageCount > 0
+            ? "px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-rose-500/20 text-rose-400 border border-rose-500/40"
+            : "px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-slate-800 text-slate-500 border border-slate-700";
+        }
+      }
+
+      if (targetSelect) {
+        targetSelect.innerHTML = `<option value="">-- Select Target Team --</option>`;
+        targetSelect.disabled = sabotageActive || sabotageCount <= 0;
+
+        Object.keys(gameState.teams).forEach(id => {
+          if (id !== selectedTableId) {
+            const t = gameState.teams[id];
+            const isCapped = (t.sabotagesReceived || 0) >= 3;
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.disabled = isCapped;
+            opt.innerText = `${t.name}${isCapped ? ' (CAPPED 3/3)' : ''}`;
+            targetSelect.appendChild(opt);
+          }
+        });
+      }
+
+      if (sabotageBtn) {
+        if (sabotageActive) {
+          sabotageBtn.disabled = true;
+          sabotageBtn.innerText = "💥 Target Locked for Round";
+          sabotageBtn.className = "w-full py-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-black opacity-60 cursor-not-allowed";
+        } else if (sabotageCount <= 0) {
+          sabotageBtn.disabled = true;
+          sabotageBtn.innerText = "No Sabotages Remaining";
+          sabotageBtn.className = "w-full py-2.5 bg-slate-800/50 text-slate-500 border border-slate-700 rounded-xl text-xs font-black cursor-not-allowed";
+        } else {
+          sabotageBtn.disabled = false;
+          sabotageBtn.innerText = "Cast Sabotage Target";
+          sabotageBtn.className = "w-full py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl text-xs font-black transition";
+        }
+      }
+
+      // 4. UPDATE SHIELD (Surge Protector)
+      const shieldBadge = document.getElementById("status-shield-card");
+      const shieldBtn = document.getElementById("btn-activate-shield");
+
+      if (shieldBadge) {
+        if (shieldActive) {
+          shieldBadge.innerText = "SHIELD ACTIVE";
+          shieldBadge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-fuse-cyan/20 text-fuse-cyan border border-fuse-cyan/40";
+        } else {
+          shieldBadge.innerText = `${shieldCount} Available`;
+          shieldBadge.className = shieldCount > 0
+            ? "px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-fuse-cyan/20 text-fuse-cyan border border-fuse-cyan/40"
+            : "px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-slate-800 text-slate-500 border border-slate-700";
+        }
+      }
+
+      if (shieldBtn) {
+        if (shieldActive) {
+          shieldBtn.disabled = true;
+          shieldBtn.innerText = "🛡️ Shield Deployed for Round";
+          shieldBtn.className = "w-full py-2.5 bg-fuse-cyan/10 text-fuse-cyan border border-fuse-cyan/30 rounded-xl text-xs font-black opacity-60 cursor-not-allowed";
+        } else if (shieldCount <= 0) {
+          shieldBtn.disabled = true;
+          shieldBtn.innerText = "No Shields Remaining";
+          shieldBtn.className = "w-full py-2.5 bg-slate-800/50 text-slate-500 border border-slate-700 rounded-xl text-xs font-black cursor-not-allowed";
+        } else {
+          shieldBtn.disabled = false;
+          shieldBtn.innerText = "Deploy Shield for Active Round";
+          shieldBtn.className = "w-full py-2.5 bg-fuse-cyan/20 hover:bg-fuse-cyan/30 text-fuse-cyan border border-fuse-cyan/40 rounded-xl text-xs font-black transition";
+        }
+      }
     }
 
     function activateDoublePoints() {
@@ -1668,7 +1783,7 @@ function confirmTableSelection() {
 
       if (isFirebaseConnected && db) {
         db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/doublePoints`).set(true);
-        db.ref(`quizState/teams/${selectedTableId}/powerUps/doublePointsCards`).transaction(count => Math.max(0, (count || 1) - 1));
+        db.ref(`quizState/teams/${selectedTableId}/powerUps/doublePointsCards`).transaction(count => Math.max(0, (count === undefined ? 1 : count) - 1));
       }
 
       showToast("POWER-UP ACTIVATED", "Step-Up Transformer (Double Points) is active for this round!", "yellow", "zap", "double_points");
@@ -1680,7 +1795,7 @@ function confirmTableSelection() {
 
       if (isFirebaseConnected && db) {
         db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/sabotageTarget`).set(targetId);
-        db.ref(`quizState/teams/${selectedTableId}/powerUps/sabotageCards`).transaction(count => Math.max(0, (count || 2) - 1));
+        db.ref(`quizState/teams/${selectedTableId}/powerUps/sabotageCards`).transaction(count => Math.max(0, (count === undefined ? 2 : count) - 1));
       }
 
       showToast("SABOTAGE CAST", "Voltage Drop (-1 Pt) target locked and engaged!", "pink", "flame", "sabotage");
@@ -1691,7 +1806,7 @@ function confirmTableSelection() {
 
       if (isFirebaseConnected && db) {
         db.ref(`quizState/pendingPowerUps/round_${round}/${selectedTableId}/shieldActive`).set(true);
-        db.ref(`quizState/teams/${selectedTableId}/powerUps/shieldCards`).transaction(count => Math.max(0, (count || 2) - 1));
+        db.ref(`quizState/teams/${selectedTableId}/powerUps/shieldCards`).transaction(count => Math.max(0, (count === undefined ? 2 : count) - 1));
       }
 
       showToast("SHIELD DEPLOYED", "Surge Protector is active. Immunity granted against incoming attacks!", "cyan", "shield-check", "shield");
