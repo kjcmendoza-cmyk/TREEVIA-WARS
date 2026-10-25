@@ -1438,17 +1438,21 @@ if (diffElem) {
           return (b.tiebreakerScore || 0) - (a.tiebreakerScore || 0);
         });
 
-      sortedTeams.forEach((team, index) => {
-        const row = document.createElement("tr");
-        row.className = "hover:bg-slate-800/50 transition border-b border-slate-800/40";
-        row.innerHTML = `
-          <td class="py-3 px-3 font-black text-fuse-cyan font-mono">#${index + 1}</td>
-          <td class="py-3 px-3 font-semibold text-white">${team.name || team.id}</td>
-          <td class="py-3 px-3 text-right text-slate-300 font-mono">+${team.roundScore || 0}</td>
-          <td class="py-3 px-3 text-right font-black text-fuse-yellow font-mono text-base">${team.totalScore || 0}</td>
-        `;
-        tbody.appendChild(row);
-      });
+      // index.html - Inside renderLeaderboardAndLogs()
+sortedTeams.forEach((team, index) => {
+  const roundPts = team.lastRoundScore !== undefined ? team.lastRoundScore : (team.roundScore || 0);
+  const formattedRoundPts = roundPts >= 0 ? `+${roundPts}` : `${roundPts}`;
+
+  const row = document.createElement("tr");
+  row.className = "hover:bg-slate-800/50 transition border-b border-slate-800/40";
+  row.innerHTML = `
+    <td class="py-3 px-3 font-black text-fuse-cyan font-mono">#${index + 1}</td>
+    <td class="py-3 px-3 font-semibold text-white">${team.name || team.id}</td>
+    <td class="py-3 px-3 text-right text-slate-300 font-mono">${formattedRoundPts}</td>
+    <td class="py-3 px-3 text-right font-black text-fuse-yellow font-mono text-base">${team.totalScore || 0}</td>
+  `;
+  tbody.appendChild(row);
+});
 
       const logContainer = document.getElementById("powerup-log-container");
       logContainer.innerHTML = "";

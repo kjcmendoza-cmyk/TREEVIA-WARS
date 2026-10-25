@@ -1014,14 +1014,14 @@ function awardClincherPoint(teamId, points, rankLabel) {
       }
     }
 
-    // Apply net round score change directly to accumulated total score
     const netRoundChange = scoreFromQuestions - netSabotageLoss;
-    const newTotalScore = Math.max(0, (team.totalScore || 0) + netRoundChange);
-    const newSabotagesReceived = (team.sabotagesReceived || 0) + actualHitsRecorded;
+const newTotalScore = Math.max(0, (team.totalScore || 0) + netRoundChange);
+const newSabotagesReceived = (team.sabotagesReceived || 0) + actualHitsRecorded;
 
-    updates[`quizState/teams/${teamId}/totalScore`] = newTotalScore;
-    updates[`quizState/teams/${teamId}/roundScore`] = 0;
-    updates[`quizState/teams/${teamId}/sabotagesReceived`] = newSabotagesReceived;
+updates[`quizState/teams/${teamId}/totalScore`] = newTotalScore;
+updates[`quizState/teams/${teamId}/lastRoundScore`] = netRoundChange;
+updates[`quizState/teams/${teamId}/roundScore`] = 0;
+updates[`quizState/teams/${teamId}/sabotagesReceived`] = newSabotagesReceived;
   });
 
   roundCheckedScores = {};
