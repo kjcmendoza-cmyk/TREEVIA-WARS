@@ -555,13 +555,13 @@
           <div class="flex justify-between items-start">
             <div>
               <h4 class="font-black text-white text-base font-display">Voltage Drop</h4>
-              <p class="text-xs text-rose-400 font-bold">Sabotage Rival (-1 Point)</p>
+              <p class="text-xs text-rose-400 font-bold">Sabotage Rival (-20 Points)</p>
             </div>
             <span id="status-sabotage-card" class="px-2.5 py-0.5 rounded-full text-[10px] font-black font-mono bg-rose-500/20 text-rose-400 border border-rose-500/40">
               2 Available
             </span>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed">Deducts 1 point from target team for this round. Max 1 cast per round.</p>
+          <p class="text-xs text-slate-400 leading-relaxed">Deducts 20 points from target team for this round. Max 1 cast per round.</p>
 
           <div class="space-y-2">
             <select id="sabotage-target-select" class="w-full bg-fuse-dark border border-fuse-border rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none">
@@ -688,7 +688,7 @@
         <h4 class="font-black text-fuse-pink uppercase font-mono text-xs tracking-wider">2. Power-Up Cards</h4>
         <ul class="list-disc list-inside space-y-2 text-slate-300">
           <li><strong class="text-fuse-yellow">Step-Up Transformer (Double Points):</strong> Multiplies correct points earned by 2x for that chosen round.</li>
-          <li><strong class="text-rose-400">Voltage Drop (Sabotage):</strong> Deducts 1 point from a targeted team. Anti-Dogpiling Cap: Max 3 total sabotage attacks received across entire game per team.</li>
+          <li><strong class="text-rose-400">Voltage Drop (Sabotage):</strong> Deducts 20 points from a targeted team. Anti-Dogpiling Cap: Max 3 total sabotage attacks received across entire game per team.</li>
           <li><strong class="text-fuse-cyan">Surge Protector (Shield):</strong> Grants complete immunity from sabotage attacks during that round. If no one attacks, shield is consumed.</li>
         </ul>
       </div>
@@ -757,15 +757,16 @@
         "Table_4": { name: "Table 4 - Ohm Supremacy", roundScore: 10, totalScore: 30, sabotagesReceived: 0, powerUps: { doublePointsCards: 1, sabotageCards: 2, shieldCards: 2 } }
       },
       latestRoundLogs: [
-        "⚡ Table 2 activated Step-Up Transformer (2x Multiplier)!",
-        "💥 Table 1 cast Voltage Drop (-1 Pt) on Table 3!",
-        "🛡️ Table 4 deployed Surge Protector Shield (Immune to attacks)!"
-      ]
-    };
-const deviceId = localStorage.getItem("faci_device_id") || "dev_" + Math.random().toString(36).substring(2, 9);
-localStorage.setItem("faci_device_id", deviceId);
-    let selectedTableId = null;
-    const OFFICER_PASSCODE = "1234";
+      "⚡ Table 2 activated Step-Up Transformer (2x Multiplier)!",
+      "💥 Table 1 cast Voltage Drop (-20 Pts) on Table 3!",
+      "🛡️ Table 4 deployed Surge Protector Shield (Immune to attacks)!"
+    ]
+  };
+
+  const deviceId = localStorage.getItem("faci_device_id") || "dev_" + Math.random().toString(36).substring(2, 9);
+  localStorage.setItem("faci_device_id", deviceId);
+  let selectedTableId = null;
+  const OFFICER_PASSCODE = "1234";
 
     if (isFirebaseConnected && db) {
       db.ref("quizState").on("value", (snapshot) => {
@@ -1254,11 +1255,11 @@ localStorage.setItem("faci_device_id", deviceId);
 
       openPowerUpConfirmModal({
         title: "VOLTAGE DROP",
-        subtitle: "Sabotage Attack (-1 Point)",
+        subtitle: "Sabotage Attack (-20 Points)",
         description: `Are you sure you want to sabotage ${targetName}?`,
         detailsHtml: `
           <div><span class="text-slate-400">Target Team:</span> <span class="text-rose-400 font-bold">${targetName}</span></div>
-          <div><span class="text-slate-400">Penalty:</span> -1 Point Deduction</div>
+          <div><span class="text-slate-400">Penalty:</span> -20 Points Deduction</div>
           <div><span class="text-slate-400">Limit:</span> Max 1 cast per round</div>
         `,
         icon: "flame",
@@ -1799,7 +1800,7 @@ function confirmTableSelection() {
         db.ref(`quizState/teams/${selectedTableId}/powerUps/sabotageCards`).transaction(count => Math.max(0, (count === undefined ? 2 : count) - 1));
       }
 
-      showToast("SABOTAGE CAST", "Voltage Drop (-1 Pt) target locked and engaged!", "pink", "flame", "sabotage");
+      showToast("SABOTAGE CAST", "Voltage Drop (-20 Pts) target locked and engaged!", "pink", "flame", "sabotage");
     }
 
     function activateShield() {

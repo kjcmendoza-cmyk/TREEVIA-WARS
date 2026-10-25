@@ -1004,7 +1004,7 @@ function awardClincherPoint(teamId, points, rankLabel) {
         const currentCap = team.sabotagesReceived || 0;
         const remainingCapRoom = Math.max(0, 3 - currentCap);
         actualHitsRecorded = Math.min(attacksReceived, remainingCapRoom);
-        netSabotageLoss = actualHitsRecorded * 1;
+netSabotageLoss = actualHitsRecorded * 20;
         logs.push(`💥 ${team.name} was hit by ${actualHitsRecorded} Voltage Drop attack(s) (-${netSabotageLoss} Pts).`);
       }
     }
