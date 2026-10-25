@@ -762,7 +762,8 @@
         "🛡️ Table 4 deployed Surge Protector Shield (Immune to attacks)!"
       ]
     };
-
+const deviceId = localStorage.getItem("faci_device_id") || "dev_" + Math.random().toString(36).substring(2, 9);
+localStorage.setItem("faci_device_id", deviceId);
     let selectedTableId = null;
     const OFFICER_PASSCODE = "1234";
 
@@ -1564,41 +1565,79 @@ if (diffElem) {
       }
     }
 
-    function exitFaciMode() {
-      document.getElementById("facilitator-container").classList.add("hidden");
-    }
+   function exitFaciMode() {
+  if (selectedTableId && isFirebaseConnected && db) {
+    db.ref(`quizState/teams/${selectedTableId}/claimedBy`).remove();
+    selectedTableId = null;
+  }
+
+  document.getElementById("facilitator-container").classList.add("hidden");
+  document.getElementById("faci-step-select-table").classList.remove("hidden");
+  document.getElementById("faci-step-deck").classList.add("hidden");
+  document.getElementById("faci-assigned-table").innerText = "No Table Selected";
+}
 
     function populateTableDropdown() {
-      const select = document.getElementById("faci-table-dropdown");
-      select.innerHTML = `<option value="">-- Choose Table --</option>`;
-      const teams = gameState.teams || {};
-      
-      Object.keys(teams).forEach(id => {
-        const opt = document.createElement("option");
-        opt.value = id;
-        opt.innerText = teams[id].name || id;
-        select.appendChild(opt);
-      });
+  const select = document.getElementById("faci-table-dropdown");
+  if (!select) return;
+  select.innerHTML = `<option value="">-- Choose Table --</option>`;
+  const teams = gameState.teams || {};
+  
+  Object.keys(teams).forEach(id => {
+    const team = teams[id];
+    const opt = document.createElement("option");
+    opt.value = id;
+
+    // Gray out and disable if claimed by a different device
+    if (team.claimedBy && team.claimedBy !== deviceId) {
+      opt.disabled = true;
+      opt.innerText = `${team.name || id} (Already Claimed)`;
+    } else {
+      opt.innerText = team.name || id;
     }
 
-    function confirmTableSelection() {
-      const sel = document.getElementById("faci-table-dropdown").value;
-      if (!sel) {
-        showToast("TABLE REQUIRED", "Please select an assigned table first.", "rose", "alert-triangle");
-        return;
-      }
-      selectedTableId = sel;
-      
-      const teamName = gameState.teams[sel]?.name || sel;
-      document.getElementById("faci-assigned-table").innerText = `Assigned: ${teamName}`;
-      
-      document.getElementById("faci-step-select-table").classList.add("hidden");
-      document.getElementById("faci-step-deck").classList.remove("hidden");
-      
-      renderFacilitatorUI();
-      showToast("TABLE ASSIGNED", `Deck connected to ${teamName}`, "lime", "check-circle");
-    }
+    select.appendChild(opt);
+  });
+}
 
+function confirmTableSelection() {
+  const sel = document.getElementById("faci-table-dropdown").value;
+  if (!sel) {
+    showToast("TABLE REQUIRED", "Please select an assigned table first.", "rose", "alert-triangle");
+    return;
+  }
+
+  // Prevent selection if claimed while dropdown was open
+  const team = gameState.teams?.[sel];
+  if (team?.claimedBy && team.claimedBy !== deviceId) {
+    showToast("ALREADY CLAIMED", "Another device has already selected this table.", "rose", "alert-circle");
+    populateTableDropdown();
+    return;
+  }
+
+  // Release previously selected table on this device
+  if (selectedTableId && selectedTableId !== sel && isFirebaseConnected && db) {
+    db.ref(`quizState/teams/${selectedTableId}/claimedBy`).remove();
+  }
+
+  selectedTableId = sel;
+  
+  // Claim table in Firebase & auto-release on disconnect/close
+  if (isFirebaseConnected && db) {
+    const claimRef = db.ref(`quizState/teams/${sel}/claimedBy`);
+    claimRef.onDisconnect().remove();
+    claimRef.set(deviceId);
+  }
+
+  const teamName = team?.name || sel;
+  document.getElementById("faci-assigned-table").innerText = `Assigned: ${teamName}`;
+  
+  document.getElementById("faci-step-select-table").classList.add("hidden");
+  document.getElementById("faci-step-deck").classList.remove("hidden");
+  
+  renderFacilitatorUI();
+  showToast("TABLE ASSIGNED", `Deck connected to ${teamName}`, "lime", "check-circle");
+}
     function renderFacilitatorUI() {
       if (!selectedTableId || !gameState.teams || !gameState.teams[selectedTableId]) return;
 

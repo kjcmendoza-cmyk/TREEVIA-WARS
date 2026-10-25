@@ -1331,14 +1331,15 @@ function restartLiveGame() {
   const teams = gameState.teams || {};
   const resetTeams = {};
 
-  // Reset scores and sabotages for existing teams without removing their names/IDs
+  // Reset scores, sabotages, and table claims for existing teams
   Object.keys(teams).forEach(id => {
     resetTeams[id] = {
       ...teams[id],
       totalScore: 0,
       roundScore: 0,
       sabotagesReceived: 0,
-      tiebreakerScore: 0 // <-- ADD THIS LINE
+      tiebreakerScore: 0,
+      claimedBy: null // <--- CLEARS ALL TABLE LOCKS IN FIREBASE
     };
   });
 
@@ -1367,7 +1368,7 @@ function restartLiveGame() {
 
   db.ref().update(updates, (err) => {
     if (!err) {
-      alert("Live match restarted! All scores set to 0. Question Bank and Team Roster remain untouched.");
+      alert("Live match restarted! All scores set to 0 and table claims unlocked. Question Bank and Team Roster remain untouched.");
     } else {
       alert("Error restarting match: " + err.message);
     }
