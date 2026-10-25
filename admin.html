@@ -968,18 +968,19 @@ function awardClincherPoint(teamId, points, rankLabel) {
   const logs = [];
   const updates = {};
 
-  // Step 1: Track sabotage attacks
+  // Step 1: Track sabotage attacks and collect attacker team names
   const incomingAttacks = {};
-  Object.keys(teams).forEach(tId => incomingAttacks[tId] = 0);
+  Object.keys(teams).forEach(tId => incomingAttacks[tId] = []);
 
   Object.keys(pending).forEach(attackerId => {
     const targetId = pending[attackerId]?.sabotageTarget;
     if (targetId && incomingAttacks[targetId] !== undefined) {
-      incomingAttacks[targetId] += 1;
+      const attackerName = teams[attackerId]?.name || attackerId;
+      incomingAttacks[targetId].push(attackerName);
     }
   });
 
-  // Step 2: Resolve scores
+  // Step 2: Resolve scores and format detailed logs
   Object.keys(teams).forEach(teamId => {
     const team = teams[teamId];
     const teamPending = pending[teamId] || {};
@@ -987,7 +988,9 @@ function awardClincherPoint(teamId, points, rankLabel) {
     const baseRoundScore = team.roundScore || 0;
     const doubleActive = teamPending.doublePoints || false;
     const shieldActive = teamPending.shieldActive || false;
-    const attacksReceived = incomingAttacks[teamId] || 0;
+    
+    const attackers = incomingAttacks[teamId] || [];
+    const attacksReceived = attackers.length;
 
     const multiplier = doubleActive ? 2 : 1;
     let scoreFromQuestions = baseRoundScore * multiplier;
@@ -998,19 +1001,22 @@ function awardClincherPoint(teamId, points, rankLabel) {
     let actualHitsRecorded = 0;
 
     if (attacksReceived > 0) {
+      const attackerListStr = attackers.join(", ");
       if (shieldActive) {
-        logs.push(`🛡️ ${team.name} deployed Surge Protector (Shield) and BLOCKED ${attacksReceived} attack(s)!`);
+        logs.push(`🛡️ ${team.name} deployed Surge Protector (Shield) and BLOCKED ${attacksReceived} attack(s) from ${attackerListStr}!`);
       } else {
         const currentCap = team.sabotagesReceived || 0;
         const remainingCapRoom = Math.max(0, 3 - currentCap);
         actualHitsRecorded = Math.min(attacksReceived, remainingCapRoom);
-netSabotageLoss = actualHitsRecorded * 20;
-        logs.push(`💥 ${team.name} was hit by ${actualHitsRecorded} Voltage Drop attack(s) (-${netSabotageLoss} Pts).`);
+        netSabotageLoss = actualHitsRecorded * 20;
+
+        logs.push(`💥 ${team.name} was hit by ${actualHitsRecorded} Voltage Drop attack(s) (-${netSabotageLoss} Pts) from ${attackerListStr}!`);
       }
     }
 
-    const finalRoundScore = Math.max(0, scoreFromQuestions - netSabotageLoss);
-    const newTotalScore = (team.totalScore || 0) + finalRoundScore;
+    // Apply net round score change directly to accumulated total score
+    const netRoundChange = scoreFromQuestions - netSabotageLoss;
+    const newTotalScore = Math.max(0, (team.totalScore || 0) + netRoundChange);
     const newSabotagesReceived = (team.sabotagesReceived || 0) + actualHitsRecorded;
 
     updates[`quizState/teams/${teamId}/totalScore`] = newTotalScore;
