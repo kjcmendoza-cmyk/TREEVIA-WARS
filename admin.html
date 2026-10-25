@@ -1357,24 +1357,24 @@ function restartLiveGame() {
   const firstQ = bank[0] || {};
 
   const updates = {
-    "quizState/currentStage": "WELCOME",
-    "quizState/currentRound": Number(firstQ.round || 1),
-    "quizState/questionNumber": Number(firstQ.number || 1),
-    "quizState/activeQuestionIndex": 0,
-    "quizState/currentCategory": firstQ.category || "-",
-    "quizState/currentPoints": firstQ.points || 10,
-    "quizState/currentQuestionText": firstQ.text || "",
-    "quizState/currentAnswerText": firstQ.answer || "",
-    "quizState/currentImageUrl": firstQ.imageUrl || "",
-    "quizState/timerRemaining": 0,
-    "quizState/defaultTimerDuration": firstQ.timerDuration || 30,
-    "quizState/scoresLockedForActiveQ": false,
-    "quizState/pendingPowerUps": {},
-    "quizState/latestRoundLogs": [],
-    "quizState/lastScoreSnapshot": null,
-    "quizState/lastRoundResolutionSnapshot": null,
-    "quizState/teams": resetTeams
-  };
+  "quizState/currentStage": "WELCOME",
+  "quizState/currentRound": Number(firstQ.round || 1),
+  "quizState/questionNumber": Number(firstQ.number || 1),
+  "quizState/activeQuestionIndex": 0,
+  "quizState/currentCategory": firstQ.category || "-",
+  "quizState/currentPoints": firstQ.points || 10,
+  "quizState/currentQuestionText": firstQ.text || "",
+  "quizState/currentAnswerText": firstQ.answer || "",
+  "quizState/currentImageUrl": firstQ.imageUrl || "",
+  "quizState/timerRemaining": 0,
+  "quizState/defaultTimerDuration": firstQ.timerDuration || 30,
+  "quizState/scoresLockedForActiveQ": false,
+  "quizState/pendingPowerUps": null, // <-- Set to null to clear in RTDB
+  "quizState/latestRoundLogs": null,  // <-- Set to null to clear in RTDB
+  "quizState/lastScoreSnapshot": null,
+  "quizState/lastRoundResolutionSnapshot": null,
+  "quizState/teams": resetTeams
+};
 
   db.ref().update(updates, (err) => {
     if (!err) {

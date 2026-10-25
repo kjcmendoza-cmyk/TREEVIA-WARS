@@ -769,15 +769,16 @@ localStorage.setItem("faci_device_id", deviceId);
 
     if (isFirebaseConnected && db) {
       db.ref("quizState").on("value", (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          gameState = Object.assign({}, gameState, data);
-          if (!gameState.teams) gameState.teams = {};
-          renderProjectorUI();
-          populateTableDropdown();
-          renderFacilitatorUI();
-        }
-      });
+  const data = snapshot.val();
+  if (data) {
+    gameState = data; // Directly replace local state with fresh DB data
+    if (!gameState.teams) gameState.teams = {};
+    if (!gameState.pendingPowerUps) gameState.pendingPowerUps = {};
+    renderProjectorUI();
+    populateTableDropdown();
+    renderFacilitatorUI();
+  }
+});
     }
 
     // =========================================================================
