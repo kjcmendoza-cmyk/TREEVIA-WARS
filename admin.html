@@ -1162,7 +1162,11 @@ function undoRoundResolution() {
     bank.push(newQ);
   }
 
+  // --- ADD THIS SORTING LINE ---
+  bank.sort((a, b) => (a.round - b.round) || (a.number - b.number));
+
   db.ref("quizState/questionBank").set(bank, () => {
+
     document.getElementById("cfg-q-text").value = "";
     document.getElementById("cfg-q-ans").value = "";
     document.getElementById("cfg-q-img").value = "";
