@@ -698,17 +698,6 @@
     </div>
   </div>
 
-  <!-- DEMO STAGE QUICK SWITCHER -->
-  <div class="fixed bottom-3 right-4 z-40 bg-fuse-dark/90 border border-fuse-border p-2 rounded-2xl flex items-center space-x-1.5 shadow-2xl backdrop-blur-md text-[11px] font-mono">
-    <span class="text-slate-400 px-2 font-bold hidden md:inline">Demo Switcher:</span>
-    <button onclick="setDemoStage('WELCOME')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-fuse-purple text-slate-200">Welcome</button>
-    <button onclick="setDemoStage('ROUND_INTRO')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-fuse-purple text-slate-200">Intro</button>
-    <button onclick="setDemoStage('QUESTION')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-fuse-purple text-slate-200">Question</button>
-    <button onclick="setDemoStage('ANSWER_REVEAL')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-fuse-purple text-slate-200">Answer</button>
-    <button onclick="setDemoStage('STANDINGS')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-fuse-purple text-slate-200">Standings</button>
-    <button onclick="setDemoStage('PODIUM')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-fuse-purple text-slate-200">Podium</button>
-  </div>
-
   <!-- FOOTER -->
   <footer class="w-full border-t border-fuse-border bg-fuse-dark/80 py-3 text-center text-slate-500 text-xs font-medium z-10 font-mono">
     Ateneo Electrical Engineering Quiz Bee Engine • FUSEE Trivia Wars • Powered by Realtime Sync
@@ -1283,11 +1272,6 @@
         colorType: "cyan",
         onConfirm: () => activateShield()
       });
-    }
-
-    function setDemoStage(stage) {
-      gameState.currentStage = stage;
-      renderProjectorUI();
     }
 
     let lastRenderedStage = null;

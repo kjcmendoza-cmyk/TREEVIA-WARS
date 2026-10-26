@@ -1253,7 +1253,8 @@ function cancelEdit(resetNumbering = true) {
       <td class="py-2 px-3 text-slate-400 truncate max-w-xs">${q.text}</td>
       <td class="py-2 px-3 text-emerald-400 font-mono">${q.answer}</td>
       <td class="py-2 px-3 text-right font-bold text-brand-yellow">${q.points}</td>
-      <td class="py-2 px-3 text-right space-x-2">
+     <td class="py-2 px-3 text-right space-x-2">
+        <button onclick="previewQuestionOnStage(${index})" class="text-cyan-400 hover:text-cyan-300 font-bold">Preview</button>
         <button onclick="editQuestion(${index})" class="text-brand-purple hover:text-indigo-300 font-bold">Edit</button>
         <button onclick="deleteQuestion(${index})" class="text-rose-400 hover:text-rose-300 font-bold">Delete</button>
       </td>
@@ -1532,6 +1533,27 @@ function updateWorkflowControlState() {
     const canSelectQ = stage === "WELCOME" || stage === "ROUND_INTRO" || (stage === "ANSWER_REVEAL" && isScoresLocked);
     selectElem.disabled = !canSelectQ;
   }
+}
+function previewQuestionOnStage(index) {
+  const bank = gameState.questionBank || [];
+  const q = bank[index];
+  if (!q) return;
+
+  db.ref("quizState").update({
+    activeQuestionIndex: index,
+    currentStage: "QUESTION",
+    currentRound: q.round,
+    questionNumber: q.number,
+    currentCategory: q.category,
+    currentDifficulty: q.difficulty || "Medium",
+    currentPoints: q.points,
+    currentQuestionText: q.text,
+    currentAnswerText: q.answer,
+    currentImageUrl: q.imageUrl || "",
+    timerRemaining: q.timerDuration || 30,
+    defaultTimerDuration: q.timerDuration || 30,
+    scoresLockedForActiveQ: false
+  });
 }
   </script>
 </body>
